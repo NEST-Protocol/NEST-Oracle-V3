@@ -234,6 +234,11 @@ contract Nest_3_VoteFactory {
         return _emergencyTimeLimit;
     }
     
+    //  查看个人NN存储量
+    function checkEmergencyPerson(address user) public view returns(uint256) {
+        return _emergencyPerson[user];
+    }
+    
     //  查看紧急状态需要nn数量
     function checkEmergencyNNAmount() public view returns(uint256) {
         return _emergencyNNAmount;
@@ -388,7 +393,7 @@ contract Nest_3_VoteContract {
         require(now <= _createTime.add(_NNLimitTime), "Voting time exceeded");
         require(_nestVote == false);
         _personalNNAmount[address(tx.origin)] = _personalNNAmount[address(tx.origin)].add(NNAmount);
-        _allNNAmount.add(NNAmount);
+        _allNNAmount = _allNNAmount.add(NNAmount);
         if (_allNNAmount >= _NNCreateLimit) {
             _nestVote = true;
         }

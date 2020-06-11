@@ -18,7 +18,6 @@ contract Nest_3_MiningContract {
     uint256 _latestBlock;                                //  最新衰减区块
     uint256 _latestMining;                               //  最新报价区块
     mapping(uint256 => uint256) _blockAmountList;        //  衰减列表 区块号=>衰减系数
-    mapping(uint256 => uint256) _blockMining;            //  报价区块出矿量 区块号=>出矿量
     Nest_3_VoteFactory _voteFactory;                     //  投票合约
     ERC20 _nestContract;                                 //  nest token合约
     address _abonusAddress;                              //  分红池地址
@@ -70,9 +69,10 @@ contract Nest_3_MiningContract {
         if (_nestContract.balanceOf(address(this)) < miningAmount){
             miningAmount = 0;
         }
-        _nestContract.transfer(address(msg.sender), miningAmount);
-        
-        emit OreDrawingLog(block.number,miningAmount,msg.value);
+        if (miningAmount > 0) {
+            _nestContract.transfer(address(msg.sender), miningAmount);
+            emit OreDrawingLog(block.number,miningAmount,msg.value);
+        }
         return miningAmount;
     }
     
@@ -119,11 +119,6 @@ contract Nest_3_MiningContract {
     //  查看衰减系数
     function checkAttenuation() public view returns(uint256 top, uint256 bottom) {
         return (_attenuationTop, _attenuationBottom);
-    }
-    
-    //  查看报价区块出矿量
-    function checkBlockMining(uint256 blockNum) public view returns(uint256) {
-        return _blockMining[blockNum];
     }
     
     //  查看最新报价区块
