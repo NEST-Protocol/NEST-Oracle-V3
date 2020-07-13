@@ -583,7 +583,7 @@ contract Nest_3_OfferMain {
      * @param offset 跳过开始的offset条记录
      * @param count 最多返回的记录条数
      * @param order 排序规则。0表示倒序，非0表示正序
-     * @return 用符号分割的合约单记录。合约单之间用|分割，字段之间用,分割：
+     * @return 合约单记录，字段之间用,分割：
      * uuid,owner,tokenAddress,ethAmount,tokenAmount,dealEthAmount,dealTokenAmount,blockNum,serviceCharge
      **/
     function list(uint256 offset, uint256 count, uint256 order) view public returns (string memory) {
