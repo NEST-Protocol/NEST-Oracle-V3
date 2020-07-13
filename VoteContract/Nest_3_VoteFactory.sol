@@ -15,7 +15,7 @@ contract Nest_3_VoteFactory {
     uint256 _NNUsedCreate = 10;                                     //  创建投票合约最小 NN 数量
     uint256 _NNCreateLimit = 100;                                   //  开启投票需要筹集 NN 最小数量
     uint256 _emergencyTime = 0;                                     //  紧急状态启动时间
-    uint256 _emergencyTimeLimit = 5 days;                           //  紧急状态持续时间
+    uint256 _emergencyTimeLimit = 3 days;                           //  紧急状态持续时间
     uint256 _emergencyNNAmount = 1000;                              //  切换紧急状态需要nn数量
     ERC20 _NNToken;                                                 //  守护者节点Token（NestNode）
     ERC20 _nestToken;                                               //  NestToken
