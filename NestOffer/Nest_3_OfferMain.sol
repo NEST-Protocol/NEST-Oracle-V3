@@ -542,7 +542,7 @@ contract Nest_3_OfferMain {
      * @param count 最多返回的记录条数
      * @param maxFindCount 最多查找maxFindCount记录
      * @param owner 目标账户地址
-     * @return 用符号分割的合约单记录。合约单之间用|分割，字段之间用,分割：
+     * @return 合约单记录，字段之间用,分割：
      * uuid,owner,tokenAddress,ethAmount,tokenAmount,dealEthAmount,dealTokenAmount,blockNum,serviceCharge
      **/
     function find(address start, uint256 count, uint256 maxFindCount, address owner) view public returns (string memory) {
