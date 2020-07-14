@@ -11,7 +11,7 @@ NestNodeToken合约 | nestNode | 0xC028E81e11F374f7c1A3bE6b8D2a815fa3E96E6e
 超级节点分配合约 | nodeAssignment | 0x39D0f58f5D5BBD636be23a3184Aff16a4D7567CF
 超级节点数据存储合约 | nodeAssignmentData | 0xb086F99E36c2c0ef6c051EE9E4d638717BBc6cbC
 超级节点nest存储合约 | nestNodeSave | 0x101D8b63A081dFfF2B1364864345b7F071b052ac
-nest锁仓合约 | nest.v3.tokenSave | 0x03904F4B9Fb54c61AAf96d0aCDD2e42a46c99102
+token锁仓合约 | nest.v3.tokenSave | 0x03904F4B9Fb54c61AAf96d0aCDD2e42a46c99102
 eth分红池合约 | nest.v3.abonus | 0x43121397631551357EA511E62163B76e39D44852
 平准基金合约 | nest.v3.leveling | 0xaE2D09D7974a933c6dDC06b8039cF09783f4bAe8
 分红合约 | nest.v3.tokenAbonus | 0xc3591cE63Edd202bF3B583E559B7257c1c2F76e3
