@@ -3,7 +3,7 @@
 合约 | 映射参数 | 地址
 ---|---|--- 
 nestToken合约 | nest | 0x04abEdA201850aC0124161F037Efd70c74ddC74C
-投票合约 |  | 0xa628845c523975493DA88Ac3641a803E92fa5d54
+投票合约 |  | 0x6Cd5698E8854Fb6879d6B1C694223b389B465dea
 挖矿合约 | nest.v3.miningSave | 0x2f979C933AEF4fCDdD27C0Fa5C54d8a780555b0a
 报价合约 | nest.v3.offerMain | 0xc83E009c7794e8f6d1954dc13c23A35Fc4D039F6
 价格合约 | nest.v3.offerPrice | 0x7722891Ee45aD38AE05bDA8349bA4CF23cFd270F
