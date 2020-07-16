@@ -282,6 +282,11 @@ contract Nest_3_VoteFactory {
         _modifyAuthority[superMan] = false;
     }
     
+    //  删除投票合约集合
+    function deleteContractData(address contractAddress) public onlyOwner {
+        _contractData[contractAddress] = false;
+    }
+    
     //  查看是否管理员
     function checkOwners(address man) public view returns (bool) {
         return _modifyAuthority[man];
