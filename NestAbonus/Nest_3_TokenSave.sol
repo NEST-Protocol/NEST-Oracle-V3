@@ -10,7 +10,7 @@ contract Nest_3_TokenSave {
     using SafeMath for uint256;
     
     Nest_3_VoteFactory _voteFactory;                                 //  投票合约
-    mapping(address => mapping(address => uint256))  _baseMapping;   //  总账本 token=>用户=>数量 
+    mapping(address => mapping(address => uint256))  _baseMapping;   //  总账本 Token=>用户=>数量 
     
     /**
     * @dev 初始化方法
@@ -29,7 +29,7 @@ contract Nest_3_TokenSave {
     }
     
     /**
-    * @dev 取出nest
+    * @dev 取出锁仓Token
     * @param num 取出数量
     * @param token 锁仓 token 地址
     * @param target 转账目标
@@ -41,7 +41,7 @@ contract Nest_3_TokenSave {
     }
     
     /**
-    * @dev 存入nest
+    * @dev 存入锁仓Token
     * @param num 存入数量
     * @param token 锁仓 token 地址
     * @param target 存入目标
