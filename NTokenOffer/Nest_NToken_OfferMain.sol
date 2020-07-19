@@ -359,7 +359,7 @@ contract Nest_NToken_OfferMain {
         } else {
             attenuation = _attenuationAmount[attenuationPointNow];
         }
-        miningAmount = _afterMiningAmount.mul(block.number.sub(recentlyUsedBlock));
+        miningAmount = attenuation.mul(block.number.sub(recentlyUsedBlock));
         miningToken.increaseTotal(miningAmount);
         emit OreDrawingLog(block.number, miningAmount, ntoken);
         return miningAmount;
