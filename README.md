@@ -15,7 +15,7 @@ token锁仓合约 | nest.v3.tokenSave | 0x03904F4B9Fb54c61AAf96d0aCDD2e42a46c991
 eth分红池合约 | nest.v3.abonus | 0x43121397631551357EA511E62163B76e39D44852
 平准基金合约 | nest.v3.leveling | 0xaE2D09D7974a933c6dDC06b8039cF09783f4bAe8
 分红合约 | nest.v3.tokenAbonus | 0xc3591cE63Edd202bF3B583E559B7257c1c2F76e3
-nToken报价合约 | nest.nToken.offerMain | 0x2A7A0d0065966F80D0277B4aa0c1f699F09B681a
+nToken报价合约 | nest.nToken.offerMain | 0x99bd363a144Fb61FEAe863b182F1f200667a1879
 nToken拍卖合约 | nest.nToken.tokenAuction | 0x385111F23A00AED181b0774E6900C846c0336dd4
 nToken映射合约 | nest.nToken.tokenMapping | 0xF9Dc75762fC000f3fb1cF88E7fcc32f9969BA003
 销毁地址 | nest.v3.destruction | 0x0000000000000000000000000000000000000001
