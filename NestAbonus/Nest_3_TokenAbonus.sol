@@ -201,7 +201,7 @@ contract Nest_3_TokenAbonus {
      //  下次分红时间，本次分红截止时间，ETH数，nest数, 参与分红的nest, 可领取分红,授权金额，余额，是否可以分红
     function getInfo(address token) public view returns (uint256 nextTime, uint256 getAbonusTime, uint256 ethNum, uint256 tokenValue, uint256 myJoinToken, uint256 getEth, uint256 allowNum, uint256 leftNum, bool allowAbonus)  {
         uint256 nowTime = now;
-        if (nowTime >= _nextTime.sub(_timeLimit) && nowTime <= _nextTime.sub(_timeLimit).add(_getAbonusTimeLimit)) {
+        if (nowTime >= _nextTime.sub(_timeLimit) && nowTime <= _nextTime.sub(_timeLimit).add(_getAbonusTimeLimit) && _times > 0 && _snapshot[token][_times.sub(1)]) {
             //  已经触发分红，并且在本次分红的时段内,显示快照数据
             allowAbonus = _getMapping[_times.sub(1)][token][address(msg.sender)];
             ethNum = _abonusMapping[token];
