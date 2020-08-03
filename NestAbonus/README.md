@@ -8,7 +8,7 @@ github地址：https://github.com/NEST-Protocol/NEST-oracle-V3/blob/master/VoteC
 合约地址（Ropsten）：0xa43f89dE7f9da44aa4d11106D7b829cf6ac0b561
 
 ### 建议
-使用NEST系统合约进行操作或查询时，对应合约地址不建议设置固定值。可以通过通票合约checkAddress方法获取，动态获取对应合约的地址。避免合约升级后，链下更改代码。
+使用NEST系统合约进行操作或查询时，对应合约地址不建议设置固定值。可以通过投票合约checkAddress方法获取，动态获取对应合约的地址。避免合约升级后，链下更改代码。
 
 ```
 // 获取 NEST Token 合约地址
