@@ -3,41 +3,41 @@ pragma solidity 0.6.0;
 import "../Lib/SafeMath.sol";
 
 /**
- * @title 投票工厂+ 映射
- * @dev 创建与投票方法
+ * @title Voting factory + mapping
+ * @dev Vote creating method
  */
 contract Nest_3_VoteFactory {
     using SafeMath for uint256;
     
-    uint256 _limitTime = 7 days;                                    //  投票持续时间
-    uint256 _NNLimitTime = 1 days;                                  //  NestNode筹集时间
-    uint256 _circulationProportion = 51;                            //  通过票数比例
-    uint256 _NNUsedCreate = 10;                                     //  创建投票合约最小 NN 数量
-    uint256 _NNCreateLimit = 100;                                   //  开启投票需要筹集 NN 最小数量
-    uint256 _emergencyTime = 0;                                     //  紧急状态启动时间
-    uint256 _emergencyTimeLimit = 3 days;                           //  紧急状态持续时间
-    uint256 _emergencyNNAmount = 1000;                              //  切换紧急状态需要nn数量
-    ERC20 _NNToken;                                                 //  守护者节点Token（NestNode）
+    uint256 _limitTime = 7 days;                                    //  Vote duration
+    uint256 _NNLimitTime = 1 days;                                  //  NestNode raising time
+    uint256 _circulationProportion = 51;                            //  Proportion of votes to pass
+    uint256 _NNUsedCreate = 10;                                     //  The minimum number of NNs to create a voting contract
+    uint256 _NNCreateLimit = 100;                                   //  The minimum number of NNs needed to start voting
+    uint256 _emergencyTime = 0;                                     //  The emergency state start time
+    uint256 _emergencyTimeLimit = 3 days;                           //  The emergency state duration
+    uint256 _emergencyNNAmount = 1000;                              //  The number of NNs required to switch the emergency state
+    ERC20 _NNToken;                                                 //  NestNode Token
     ERC20 _nestToken;                                               //  NestToken
-    mapping(string => address) _contractAddress;                    //  投票合约映射
-    mapping(address => bool) _modifyAuthority;                      //  修改权限
-    mapping(address => address) _myVote;                            //  我的投票
-    mapping(address => uint256) _emergencyPerson;                   //  紧急状态个人存储量
-    mapping(address => bool) _contractData;                         //  投票合约集合
-    bool _stateOfEmergency = false;                                 //  紧急状态
-    address _destructionAddress;                                    //  销毁合约地址
+    mapping(string => address) _contractAddress;                    //  Voting contract mapping
+    mapping(address => bool) _modifyAuthority;                      //  Modify permissions
+    mapping(address => address) _myVote;                            //  Personal voting address
+    mapping(address => uint256) _emergencyPerson;                   //  Emergency state personal voting number
+    mapping(address => bool) _contractData;                         //  Voting contract data
+    bool _stateOfEmergency = false;                                 //  Emergency state
+    address _destructionAddress;                                    //  Destroy contract address
 
     event ContractAddress(address contractAddress);
     
     /**
-    * @dev 初始化方法
+    * @dev Initialization method
     */
     constructor () public {
         _modifyAuthority[address(msg.sender)] = true;
     }
     
     /**
-    * @dev 重置合约
+    * @dev Reset contract
     */
     function changeMapping() public onlyOwner {
         _NNToken = ERC20(checkAddress("nestNode"));
@@ -46,9 +46,9 @@ contract Nest_3_VoteFactory {
     }
     
     /**
-    * @dev 创建投票合约
-    * @param implementContract 投票可执行合约地址
-    * @param nestNodeAmount 质押 NN 数量
+    * @dev Create voting contract
+    * @param implementContract The executable contract address for voting
+    * @param nestNodeAmount Number of NNs to pledge
     */
     function createVote(address implementContract, uint256 nestNodeAmount) public {
         require(address(tx.origin) == address(msg.sender), "It can't be a contract");
@@ -60,8 +60,8 @@ contract Nest_3_VoteFactory {
     }
     
     /**
-    * @dev 使用 nest 投票
-    * @param contractAddress 投票合约地址
+    * @dev Use NEST to vote
+    * @param contractAddress Vote contract address
     */
     function nestVote(address contractAddress) public {
         require(address(msg.sender) == address(tx.origin), "It can't be a contract");
@@ -73,9 +73,9 @@ contract Nest_3_VoteFactory {
     }
     
     /**
-    * @dev 使用 nestNode 投票
-    * @param contractAddress 投票合约地址
-    * @param NNAmount 质押 NN 数量
+    * @dev Vote using NestNode Token
+    * @param contractAddress Vote contract address
+    * @param NNAmount Amount of NNs to pledge
     */
     function nestNodeVote(address contractAddress, uint256 NNAmount) public {
         require(address(msg.sender) == address(tx.origin), "It can't be a contract");
@@ -86,8 +86,8 @@ contract Nest_3_VoteFactory {
     }
     
     /**
-    * @dev 执行投票
-    * @param contractAddress 投票合约地址
+    * @dev Excecute contract
+    * @param contractAddress Vote contract address
     */
     function startChange(address contractAddress) public {
         require(address(msg.sender) == address(tx.origin), "It can't be a contract");
@@ -100,8 +100,8 @@ contract Nest_3_VoteFactory {
     }
     
     /**
-    * @dev 切换紧急状态-转入NestNode
-    * @param amount 转入 NestNode 数量
+    * @dev Switch emergency state-transfer in NestNode Token
+    * @param amount Amount of NNs to transfer
     */
     function sendNestNodeForStateOfEmergency(uint256 amount) public {
         require(_NNToken.transferFrom(address(tx.origin), address(this), amount));
@@ -109,7 +109,7 @@ contract Nest_3_VoteFactory {
     }
     
     /**
-    * @dev 切换紧急状态-取出NestNode
+    * @dev Switch emergency state-transfer out NestNode Token
     */
     function turnOutNestNodeForStateOfEmergency() public {
         require(_emergencyPerson[address(tx.origin)] > 0);
@@ -120,7 +120,7 @@ contract Nest_3_VoteFactory {
     }
     
     /**
-    * @dev 修改紧急状态
+    * @dev Modify emergency state
     */
     function changeStateOfEmergency() public {
         if (_stateOfEmergency) {
@@ -136,9 +136,9 @@ contract Nest_3_VoteFactory {
     }
     
     /**
-    * @dev 查看是否有正在参与的投票 
-    * @param user 参与投票地址
-    * @return bool 是否正在参与投票
+    * @dev Check whether participating in the voting
+    * @param user Address to check
+    * @return bool Whether voting
     */
     function checkVoteNow(address user) public view returns (bool) {
         if (_myVote[user] == address(0x0)) {
@@ -153,120 +153,120 @@ contract Nest_3_VoteFactory {
     }
     
     /**
-    * @dev 查看我的投票
-    * @param user 参与投票地址
-    * @return address 最近参与的投票合约地址
+    * @dev Check my voting
+    * @param user Address to check
+    * @return address Address recently participated in the voting contract address
     */
     function checkMyVote(address user) public view returns (address) {
         return _myVote[user];
     }
     
-    //  查看投票时间
+    //  Check the voting time
     function checkLimitTime() public view returns (uint256) {
         return _limitTime;
     }
     
-    //  查看NestNode筹集时间
+    //  Check the NestNode raising time
     function checkNNLimitTime() public view returns (uint256) {
         return _NNLimitTime;
     }
     
-    //  查看通过投票比例
+    //  Check the voting proportion to pass
     function checkCirculationProportion() public view returns (uint256) {
         return _circulationProportion;
     }
     
-    //  查看创建投票合约最小 NN 数量
+    //  Check the minimum number of NNs to create a voting contract
     function checkNNUsedCreate() public view returns (uint256) {
         return _NNUsedCreate;
     }
     
-    //  查看创建投票筹集 NN 最小数量
+    //  Check the minimum number of NNs raised to start a vote
     function checkNNCreateLimit() public view returns (uint256) {
         return _NNCreateLimit;
     }
     
-    //  查看是否是紧急状态
+    //  Check whether in emergency state
     function checkStateOfEmergency() public view returns (bool) {
         return _stateOfEmergency;
     }
     
-    //  查看紧急状态启动时间 
+    //  Check the start time of the emergency state
     function checkEmergencyTime() public view returns (uint256) {
         return _emergencyTime;
     }
     
-    //  查看紧急状态持续时间 
+    //  Check the duration of the emergency state
     function checkEmergencyTimeLimit() public view returns (uint256) {
         return _emergencyTimeLimit;
     }
     
-    //  查看个人 NN 存储量
+    //  Check the amount of personal pledged NNs
     function checkEmergencyPerson(address user) public view returns (uint256) {
         return _emergencyPerson[user];
     }
     
-    //  查看紧急状态需要 NN 数量
+    //  Check the number of NNs required for the emergency
     function checkEmergencyNNAmount() public view returns (uint256) {
         return _emergencyNNAmount;
     }
     
-    //  验证投票合约
+    //  Verify voting contract data
     function checkContractData(address contractAddress) public view returns (bool) {
         return _contractData[contractAddress];
     }
     
-    //  修改投票时间
+    //  Modify voting time
     function changeLimitTime(uint256 num) public onlyOwner {
         require(num > 0, "Parameter needs to be greater than 0");
         _limitTime = num;
     }
     
-    //  修改NestNode筹集时间
+    //  Modify the NestNode raising time
     function changeNNLimitTime(uint256 num) public onlyOwner {
         require(num > 0, "Parameter needs to be greater than 0");
         _NNLimitTime = num;
     }
     
-    //  修改通过投票比例
+    //  Modify the voting proportion
     function changeCirculationProportion(uint256 num) public onlyOwner {
         require(num > 0, "Parameter needs to be greater than 0");
         _circulationProportion = num;
     }
     
-    //  修改创建投票合约最小 NN 数量
+    //  Modify the minimum number of NNs to create a voting contract
     function changeNNUsedCreate(uint256 num) public onlyOwner {
         _NNUsedCreate = num;
     }
     
-    //  修改创建投票筹集 NN 最小数量
+    //  Modify the minimum number of NNs to raised to start a voting
     function checkNNCreateLimit(uint256 num) public onlyOwner {
         _NNCreateLimit = num;
     }
     
-    //  修改紧急状态持续时间
+    //  Modify the emergency state duration
     function changeEmergencyTimeLimit(uint256 num) public onlyOwner {
         require(num > 0);
         _emergencyTimeLimit = num.mul(1 days);
     }
     
-    //  修改紧急状态需要 NN 数量
+    //  Modify the number of NNs required for emergency state
     function changeEmergencyNNAmount(uint256 num) public onlyOwner {
         require(num > 0);
         _emergencyNNAmount = num;
     }
     
-    //  查询地址
+    //  Check address
     function checkAddress(string memory name) public view returns (address contractAddress) {
         return _contractAddress[name];
     }
     
-    //  添加合约映射地址
+    //  Add contract mapping address
     function addContractAddress(string memory name, address contractAddress) public onlyOwner {
         _contractAddress[name] = contractAddress;
     }
     
-    //  增加管理地址
+    //  Add administrator address 
     function addSuperMan(address superMan) public onlyOwner {
         _modifyAuthority[superMan] = true;
     }
@@ -274,7 +274,7 @@ contract Nest_3_VoteFactory {
         _modifyAuthority[superMan] = true;
     }
     
-    //  删除管理地址
+    //  Delete administrator address
     function deleteSuperMan(address superMan) public onlyOwner {
         _modifyAuthority[superMan] = false;
     }
@@ -282,17 +282,17 @@ contract Nest_3_VoteFactory {
         _modifyAuthority[superMan] = false;
     }
     
-    //  删除投票合约集合
+    //  Delete voting contract data
     function deleteContractData(address contractAddress) public onlyOwner {
         _contractData[contractAddress] = false;
     }
     
-    //  查看是否管理员
+    //  Check whether the administrator
     function checkOwners(address man) public view returns (bool) {
         return _modifyAuthority[man];
     }
     
-    //  仅限管理员操作
+    //  Administrator only
     modifier onlyOwner() {
         require(checkOwners(msg.sender), "No authority");
         _;
@@ -300,41 +300,41 @@ contract Nest_3_VoteFactory {
 }
 
 /**
- * @title 投票合约
+ * @title Voting contract
  */
 contract Nest_3_VoteContract {
     using SafeMath for uint256;
     
-    Nest_3_Implement _implementContract;                //  可执行合约
-    Nest_3_TokenSave _tokenSave;                        //  锁仓合约 
-    Nest_3_VoteFactory _voteFactory;                    //  投票工厂合约
-    Nest_3_TokenAbonus _tokenAbonus;                    //  分红逻辑合约
+    Nest_3_Implement _implementContract;                //  Executable contract
+    Nest_3_TokenSave _tokenSave;                        //  Lock-up contract
+    Nest_3_VoteFactory _voteFactory;                    //  Voting factory contract
+    Nest_3_TokenAbonus _tokenAbonus;                    //  Bonus logic contract
     ERC20 _nestToken;                                   //  NestToken
-    ERC20 _NNToken;                                     //  守护者节点
-    address _miningSave;                                //  矿池合约
-    address _implementAddress;                          //  执行地址
-    address _destructionAddress;                        //  销毁合约地址
-    uint256 _createTime;                                //  创建时间
-    uint256 _endTime;                                   //  结束时间
-    uint256 _totalAmount;                               //  总投票数
-    uint256 _circulation;                               //  通过票数
-    uint256 _destroyedNest;                             //  已销毁 NEST
-    uint256 _NNLimitTime;                               //  NestNode筹集时间
-    uint256 _NNCreateLimit;                             //  创建投票筹集 NN最小数量
-    uint256 _abonusTimes;                               //  紧急状态使用的快照期数
-    uint256 _allNNAmount;                               //  NN总数
-    bool _effective = false;                            //  是否生效
-    bool _nestVote = false;                             //  是否可进行 NEST 投票
-    bool _isChange = false;                             //  是否已执行
-    bool _stateOfEmergency;                             //  是否为紧急状态
-    mapping(address => uint256) _personalAmount;        //  个人投票数
-    mapping(address => uint256) _personalNNAmount;      //  NN个人投票数
+    ERC20 _NNToken;                                     //  NestNode Token
+    address _miningSave;                                //  Mining pool contract
+    address _implementAddress;                          //  Executable contract address
+    address _destructionAddress;                        //  Destruction contract address
+    uint256 _createTime;                                //  Creation time
+    uint256 _endTime;                                   //  End time
+    uint256 _totalAmount;                               //  Total votes
+    uint256 _circulation;                               //  Passed votes
+    uint256 _destroyedNest;                             //  Destroyed NEST
+    uint256 _NNLimitTime;                               //  NestNode raising time
+    uint256 _NNCreateLimit;                             //  Minimum number of NNs to create votes
+    uint256 _abonusTimes;                               //  Period number of used snapshot in emergency state
+    uint256 _allNNAmount;                               //  Total number of NNs
+    bool _effective = false;                            //  Whether vote is effective
+    bool _nestVote = false;                             //  Whether NEST vote can be performed
+    bool _isChange = false;                             //  Whether NEST vote is executed
+    bool _stateOfEmergency;                             //  Whether the contract is in emergency state
+    mapping(address => uint256) _personalAmount;        //  Number of personal votes
+    mapping(address => uint256) _personalNNAmount;      //  Number of NN personal votes
     
     /**
-    * @dev 初始化方法
-    * @param contractAddress 可执行合约地址
-    * @param stateOfEmergency 是否为紧急状态 
-    * @param NNAmount NN数量
+    * @dev Initialization method
+    * @param contractAddress Executable contract address
+    * @param stateOfEmergency Whether in emergency state
+    * @param NNAmount Amount of NNs
     */
     constructor (address contractAddress, bool stateOfEmergency, uint256 NNAmount) public {
         Nest_3_VoteFactory voteFactory = Nest_3_VoteFactory(address(msg.sender));
@@ -352,7 +352,7 @@ contract Nest_3_VoteContract {
         _NNCreateLimit = voteFactory.checkNNCreateLimit();
         _stateOfEmergency = stateOfEmergency;
         if (stateOfEmergency) {
-            //  紧急状态读取前两期分红锁仓及总流通量数据
+            //  If in emergency state, read the last two periods of bonus lock-up and total circulation data
             _tokenAbonus = Nest_3_TokenAbonus(voteFactory.checkAddress("nest.v3.tokenAbonus"));
             _abonusTimes = _tokenAbonus.checkTimes().sub(2);
             require(_abonusTimes > 0);
@@ -368,7 +368,7 @@ contract Nest_3_VoteContract {
     }
     
     /**
-    * @dev NEST投票
+    * @dev NEST voting
     */
     function nestVote() public onlyFactory {
         require(now <= _endTime, "Voting time exceeded");
@@ -377,7 +377,7 @@ contract Nest_3_VoteContract {
         require(_personalAmount[address(tx.origin)] == 0, "Have voted");
         uint256 amount;
         if (_stateOfEmergency) {
-            //  紧急状态读取前两期分红锁仓
+            //  If in emergency state, read the last two periods of bonus lock-up and total circulation data
             amount = _tokenAbonus.checkTokenSelfHistory(address(_nestToken),_abonusTimes, address(tx.origin));
         } else {
             amount = _tokenSave.checkAmount(address(tx.origin), address(_nestToken));
@@ -388,7 +388,7 @@ contract Nest_3_VoteContract {
     }
     
     /**
-    * @dev NEST取消投票
+    * @dev NEST voting cancellation
     */
     function nestVoteCancel() public {
         require(address(msg.sender) == address(tx.origin), "It can't be a contract");
@@ -400,8 +400,8 @@ contract Nest_3_VoteContract {
     }
     
     /**
-    * @dev  NestNode投票
-    * @param NNAmount NN数量
+    * @dev  NestNode voting
+    * @param NNAmount Amount of NNs
     */
     function nestNodeVote(uint256 NNAmount) public onlyFactory {
         require(now <= _createTime.add(_NNLimitTime), "Voting time exceeded");
@@ -414,31 +414,31 @@ contract Nest_3_VoteContract {
     }
     
     /**
-    * @dev 取出抵押 NN
+    * @dev Withdrawing lock-up NNs
     */
     function turnOutNestNode() public {
         if (_nestVote) {
-            //  正常 NEST 投票
+            //  Normal NEST voting
             if (!_stateOfEmergency || !_effective) {
-                //  非紧急状态
+                //  Non-emergency state
                 require(now > _endTime, "Vote unenforceable");
             }
         } else {
-            //  NN 投票
+            //  NN voting
             require(now > _createTime.add(_NNLimitTime));
         }
         require(_personalNNAmount[address(tx.origin)] > 0);
-        //  转回 NN
+        //  Reverting back the NNs
         require(_NNToken.transfer(address(tx.origin), _personalNNAmount[address(tx.origin)]));
         _personalNNAmount[address(tx.origin)] = 0;
-        //  销毁 NEST
+        //  Destroying NEST Tokens 
         uint256 nestAmount = _nestToken.balanceOf(address(this));
         _destroyedNest = _destroyedNest.add(nestAmount);
         require(_nestToken.transfer(address(_destructionAddress), nestAmount));
     }
     
     /**
-    * @dev 执行修改合约
+    * @dev Execute the contract
     */
     function startChange() public onlyFactory {
         require(!_isChange);
@@ -448,16 +448,16 @@ contract Nest_3_VoteContract {
         } else {
             require(_effective && now > _endTime, "Vote unenforceable");
         }
-        //  将执行合约加入管理集合
+        //  Add the executable contract to the administrator list
         _voteFactory.addSuperMan(address(_implementContract));
-        //  执行
+        //  Execute
         _implementContract.doit();
-        //  将执行合约删除
+        //  Delete the authorization
         _voteFactory.deleteSuperMan(address(_implementContract));
     }
     
     /**
-    * @dev 判断是否生效
+    * @dev check whether the vote is effective
     */
     function ifEffective() private {
         if (_totalAmount >= _circulation) {
@@ -466,7 +466,7 @@ contract Nest_3_VoteContract {
     }
     
     /**
-    * @dev 查看投票合约是否结束
+    * @dev Check whether the vote is over
     */
     function checkContractEffective() public view returns (bool) {
         if (_effective || now > _endTime) {
@@ -475,116 +475,116 @@ contract Nest_3_VoteContract {
         return false;
     }
     
-    //  查看执行合约地址 
+    //  Check the executable implement contract address
     function checkImplementAddress() public view returns (address) {
         return _implementAddress;
     }
     
-    //  查看投票开始时间
+    //  Check the voting start time
     function checkCreateTime() public view returns (uint256) {
         return _createTime;
     }
     
-    //  查看投票结束时间
+    //  Check the voting end time
     function checkEndTime() public view returns (uint256) {
         return _endTime;
     }
     
-    //  查看当前总投票数
+    //  Check the current total number of votes
     function checkTotalAmount() public view returns (uint256) {
         return _totalAmount;
     }
     
-    //  查看通过投票数
+    //  Check the number of votes to pass
     function checkCirculation() public view returns (uint256) {
         return _circulation;
     }
     
-    //  查看个人投票数
+    //  Check the number of personal votes
     function checkPersonalAmount(address user) public view returns (uint256) {
         return _personalAmount[user];
     }
     
-    //  查看已经销毁 NEST
+    //  Check the destroyed NEST
     function checkDestroyedNest() public view returns (uint256) {
         return _destroyedNest;
     }
     
-    //  查看合约是否生效
+    //  Check whether the contract is effective
     function checkEffective() public view returns (bool) {
         return _effective;
     }
     
-    //  查看是否是紧急状态 
+    //  Check whether in emergency state
     function checkStateOfEmergency() public view returns (bool) {
         return _stateOfEmergency;
     }
     
-    //  查看 NestNode 筹集时间
+    //  Check NestNode raising time
     function checkNNLimitTime() public view returns (uint256) {
         return _NNLimitTime;
     }
     
-    //  查看创建投票筹集 NN 最小数量
+    //  Check the minimum number of NNs to create a vote
     function checkNNCreateLimit() public view returns (uint256) {
         return _NNCreateLimit;
     }
     
-    //  查看紧急状态使用的快照期数
+    //  Check the period number of snapshot used in the emergency state
     function checkAbonusTimes() public view returns (uint256) {
         return _abonusTimes;
     }
     
-    //  查看 NN 个人投票数
+    //  Check number of personal votes
     function checkPersonalNNAmount(address user) public view returns (uint256) {
         return _personalNNAmount[address(user)];
     }
     
-    //  查看 NN 总数
+    //  Check the total number of NNs
     function checkAllNNAmount() public view returns (uint256) {
         return _allNNAmount;
     }
     
-    //  查看是否可进行 NEST 投票
+    //  Check whether NEST voting is available
     function checkNestVote() public view returns (bool) {
         return _nestVote;
     }
     
-    //  查看是否已执行
+    //  Check whether it has been excecuted
     function checkIsChange() public view returns (bool) {
         return _isChange;
     }
     
-    //  仅限工厂合约
+    //  Vote Factory contract only
     modifier onlyFactory() {
         require(address(_voteFactory) == address(msg.sender), "No authority");
         _;
     }
 }
 
-//  执行合约
+//  Executable contract
 interface Nest_3_Implement {
-    //  执行
+    //  Execute
     function doit() external;
 }
 
-//  NEST锁仓合约
+//  NEST lock-up contract
 interface Nest_3_TokenSave {
-    //  查看锁仓金额
+    //  Check lock-up amount
     function checkAmount(address sender, address token) external view returns (uint256);
 }
 
-//  分红逻辑合约
+//  Bonus logic contract
 interface Nest_3_TokenAbonus {
-    //  查看 NEST 流通量快照
+    //  Check NEST circulation snapshot
     function checkTokenAllValueHistory(address token, uint256 times) external view returns (uint256);
-    //  查看 NEST 流通量快照
+    //  Check NEST user balance snapshot
     function checkTokenSelfHistory(address token, uint256 times, address user) external view returns (uint256);
-    //  查看分红账本期数
+    //  Check bonus ledger period
     function checkTimes() external view returns (uint256);
 }
 
-//  ERC20合约
+//  Erc20 contract
 interface ERC20 {
     function totalSupply() external view returns (uint256);
     function balanceOf(address account) external view returns (uint256);

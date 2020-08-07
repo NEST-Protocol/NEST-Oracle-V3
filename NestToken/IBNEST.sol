@@ -338,8 +338,8 @@ contract IBNEST is StandardToken {
     }
     
     function balancesGetValue(uint256 num) public view returns(address, uint256) {
-        address key;                            //  分红地址
-        uint256 value;                          //  持有代币数量
+        address key;                            
+        uint256 value;                          
         (key, value) = IterableMapping.iterate_get(balances, num);
         return (key, value);
     }

@@ -3,44 +3,48 @@ pragma solidity 0.6.0;
 import "../Lib/SafeMath.sol";
 import "../Lib/AddressPayable.sol";
 
+/**
+ * @title Dividend logic
+ * @dev Some operations about dividend,logic and asset separation
+ */
 contract Nest_3_TokenAbonus {
     using address_make_payable for address;
     using SafeMath for uint256;
     
     ERC20 _nestContract;
-    Nest_3_TokenSave _tokenSave;                                                                //  锁仓合约
-    Nest_3_Abonus _abonusContract;                                                              //  eth分红池
-    Nest_3_VoteFactory _voteFactory;                                                            //  投票合约
-    Nest_3_Leveling _nestLeveling;                                                              //  平准合约
-    address _destructionAddress;                                                                //  销毁合约地址
+    Nest_3_TokenSave _tokenSave;                                                                //  Lock-up contract
+    Nest_3_Abonus _abonusContract;                                                              //  ETH bonus pool
+    Nest_3_VoteFactory _voteFactory;                                                            //  Voting contract
+    Nest_3_Leveling _nestLeveling;                                                              //  Leveling contract
+    address _destructionAddress;                                                                //  Destroy contract address
     
-    uint256 _timeLimit = 168 hours;                                                             //  分红周期
-    uint256 _nextTime = 1594958400;                                                             //  下次分红时间
-    uint256 _getAbonusTimeLimit = 60 hours;                                                     //  触发计算结算时间
-    uint256 _times = 0;                                                                         //  分红账本
-    uint256 _expectedIncrement = 3;                                                             //  预期分红增量比例
-    uint256 _expectedSpanForNest = 100000000 ether;                                             //  NEST预期分红增量阈值
-    uint256 _expectedSpanForNToken = 1000000 ether;                                             //  Ntoken预期分红增量阈值
-    uint256 _expectedMinimum = 100 ether;                                                       //  预期最低分红
-    uint256 _savingLevelOne = 10;                                                               //  储蓄阈值1级
-    uint256 _savingLevelTwo = 20;                                                               //  储蓄阈值2级
-    uint256 _savingLevelTwoSub = 100 ether;                                                     //  储蓄阈值2级函数参数
-    uint256 _savingLevelThree = 30;                                                             //  储蓄阈值3级
-    uint256 _savingLevelThreeSub = 600 ether;                                                   //  储蓄阈值3级函数参数
+    uint256 _timeLimit = 168 hours;                                                             //  Bonus period
+    uint256 _nextTime = 1596168000;                                                             //  Next bonus time
+    uint256 _getAbonusTimeLimit = 60 hours;                                                     //  During of triggering calculation of bonus
+    uint256 _times = 0;                                                                         //  Bonus ledger
+    uint256 _expectedIncrement = 3;                                                             //  Expected bonus increment ratio
+    uint256 _expectedSpanForNest = 100000000 ether;                                             //  NEST expected bonus increment threshold
+    uint256 _expectedSpanForNToken = 1000000 ether;                                             //  NToken expected bonus increment threshold
+    uint256 _expectedMinimum = 100 ether;                                                       //  Expected minimum bonus
+    uint256 _savingLevelOne = 10;                                                               //  Saving threshold level 1
+    uint256 _savingLevelTwo = 20;                                                               //  Saving threshold level 2 
+    uint256 _savingLevelTwoSub = 100 ether;                                                     //  Function parameters of savings threshold level 2  
+    uint256 _savingLevelThree = 30;                                                             //  Function parameters of savings threshold level 3
+    uint256 _savingLevelThreeSub = 600 ether;                                                   //  Function parameters of savings threshold level 3
     
-    mapping(address => uint256) _abonusMapping;                                                 //  分红池快照  token地址(nest或ntoken) => 分红池中 eth 数量 
-    mapping(address => uint256) _tokenAllValueMapping;                                          //  token数量(流通) token地址(nest或ntoken) => 总流通量
-    mapping(address => mapping(uint256 => uint256)) _tokenAllValueHistory;                      //  nest或ntoken流通量快照 token地址(nest或ntoken) => 期数 => 总流通量
-    mapping(address => mapping(uint256 => mapping(address => uint256))) _tokenSelfHistory;      //  个人锁仓nest或ntoken快照 token地址(nest或ntoken) => 期数 => 用户地址 => 总流通量
-    mapping(address => mapping(uint256 => bool)) _snapshot;                                     //  是否快照 token地址(nest或ntoken) => 期数 => 是否快照
-    mapping(uint256 => mapping(address => mapping(address => bool))) _getMapping;               //  领取记录账本 期数 => token地址(nest或ntoken) => 用户地址 => 是否已经领取
+    mapping(address => uint256) _abonusMapping;                                                 //  Bonus pool snapshot - token address (NEST or NToken) => number of ETH in the bonus pool 
+    mapping(address => uint256) _tokenAllValueMapping;                                          //  Number of tokens (circulation) - token address (NEST or NToken) ) => total circulation 
+    mapping(address => mapping(uint256 => uint256)) _tokenAllValueHistory;                      //  NEST or NToken circulation snapshot - token address (NEST or NToken) => number of periods => total circulation 
+    mapping(address => mapping(uint256 => mapping(address => uint256))) _tokenSelfHistory;      //  Personal lockup - NEST or NToken snapshot token address (NEST or NToken) => period => user address => total circulation
+    mapping(address => mapping(uint256 => bool)) _snapshot;                                     //  Whether snapshot - token address (NEST or NToken) => number of periods => whether to take a snapshot
+    mapping(uint256 => mapping(address => mapping(address => bool))) _getMapping;               //  Receiving records - period => token address (NEST or NToken) => user address => whether received
     
-    //  log token地址,数量
+    //  Log token address, amount
     event GetTokenLog(address tokenAddress, uint256 tokenAmount);
     
-    /**
-    * @dev 初始化方法
-    * @param voteFactory 投票合约地址
+   /**
+    * @dev Initialization method
+    * @param voteFactory Voting contract address
     */
     constructor (address voteFactory) public {
         Nest_3_VoteFactory voteFactoryMap = Nest_3_VoteFactory(address(voteFactory));
@@ -55,8 +59,8 @@ contract Nest_3_TokenAbonus {
     }
     
     /**
-    * @dev 修改投票合约
-    * @param voteFactory 投票合约地址
+    * @dev Modify voting contract
+    * @param voteFactory Voting contract address
     */
     function changeMapping(address voteFactory) public onlyOwner {
         Nest_3_VoteFactory voteFactoryMap = Nest_3_VoteFactory(address(voteFactory));
@@ -71,23 +75,23 @@ contract Nest_3_TokenAbonus {
     }
     
     /**
-    * @dev 存入
-    * @param amount 存入数量
-    * @param token 锁仓 token 地址
+    * @dev Deposit 
+    * @param amount Deposited amount
+    * @param token Locked token address
     */
     function depositIn(uint256 amount, address token) public {
         uint256 nowTime = now;
         uint256 nextTime = _nextTime;
         uint256 timeLimit = _timeLimit;
         if (nowTime < nextTime) {
-            //  已触发分红
+            //  Bonus triggered
             require(!(nowTime >= nextTime.sub(timeLimit) && nowTime <= nextTime.sub(timeLimit).add(_getAbonusTimeLimit)));
         } else {
-            //  未触发分红
+            //  Bonus not triggered
             uint256 times = (nowTime.sub(_nextTime)).div(_timeLimit);
-            //  计算应该分红的时间
+            //  Calculate the time when bonus should be started
             uint256 startTime = _nextTime.add((times).mul(_timeLimit));  
-            //  计算应该停止分红的时间
+            //  Calculate the time when bonus should be stopped
             uint256 endTime = startTime.add(_getAbonusTimeLimit);                                                                    
             require(!(nowTime >= startTime && nowTime <= endTime));
         }
@@ -95,9 +99,9 @@ contract Nest_3_TokenAbonus {
     }
     
     /**
-    * @dev 取出
-    * @param amount 取出数量
-    * @param token 锁仓 token 地址
+    * @dev Withdrawing
+    * @param amount Withdrawing amount
+    * @param token Token address
     */
     function takeOut(uint256 amount, address token) public {
         require(amount > 0, "Parameter needs to be greater than 0");                                                                
@@ -109,8 +113,8 @@ contract Nest_3_TokenAbonus {
     }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
     
     /**
-    * @dev 领取
-    * @param token 领取 token 地址
+    * @dev Receiving
+    * @param token Receiving token address
     */
     function getAbonus(address token) public {
         uint256 tokenAmount = _tokenSave.checkAmount(address(msg.sender), token);
@@ -130,11 +134,11 @@ contract Nest_3_TokenAbonus {
     }
     
     /**
-    * @dev 更新分红时间、更新阶段账本
+    * @dev Update bonus time and stage ledger
     */
     function reloadTime() private {
         uint256 nowTime = now;
-        //  当前时间必须超过分红时间
+        //  The current time must exceed the bonus time
         if (nowTime >= _nextTime) {                                                                                                 
             uint256 time = (nowTime.sub(_nextTime)).div(_timeLimit);
             uint256 startTime = _nextTime.add((time).mul(_timeLimit));                                                              
@@ -147,8 +151,8 @@ contract Nest_3_TokenAbonus {
     }
     
     /**
-    * @dev 快照 token数量
-    * @param token 领取token地址
+    * @dev Snapshot of the amount of tokens
+    * @param token Receiving token address
     */
     function reloadToken(address token) private {
         if (!_snapshot[token][_times.sub(1)]) {
@@ -161,8 +165,8 @@ contract Nest_3_TokenAbonus {
     }
     
     /**
-    * @dev 平准结算
-    * @param token 领取token地址
+    * @dev Leveling settlement
+    * @param token Receiving token address
     */
     function levelingResult(address token) private {
         uint256 steps;
@@ -198,16 +202,16 @@ contract Nest_3_TokenAbonus {
         }
     }
     
-     //  下次分红时间，本次分红截止时间，ETH数，nest数, 参与分红的nest, 可领取分红,授权金额，余额，是否可以分红
+     // Next bonus time, current bonus deadline, ETH number, NEST number, NEST participating in bonus, bonus to receive, approved amount, balance, whether bonus can be paid 
     function getInfo(address token) public view returns (uint256 nextTime, uint256 getAbonusTime, uint256 ethNum, uint256 tokenValue, uint256 myJoinToken, uint256 getEth, uint256 allowNum, uint256 leftNum, bool allowAbonus)  {
         uint256 nowTime = now;
         if (nowTime >= _nextTime.sub(_timeLimit) && nowTime <= _nextTime.sub(_timeLimit).add(_getAbonusTimeLimit) && _times > 0 && _snapshot[token][_times.sub(1)]) {
-            //  已经触发分红，并且在本次分红的时段内,显示快照数据
+            //  Bonus have been triggered, and during the time of this bonus, display snapshot data 
             allowAbonus = _getMapping[_times.sub(1)][token][address(msg.sender)];
             ethNum = _abonusMapping[token];
             tokenValue = _tokenAllValueMapping[token];
         } else {
-            //  显示实时数据
+            //  Display real-time data 
             ethNum = _abonusContract.getETHNum(token);
             tokenValue = allValue(token);
             allowAbonus = _getMapping[_times][token][address(msg.sender)];
@@ -225,8 +229,8 @@ contract Nest_3_TokenAbonus {
     }
     
     /**
-    * @dev 下次分红时间
-    * @return 下次分红时间
+    * @dev View next bonus time 
+    * @return Next bonus time 
     */
     function getNextTime() public view returns (uint256) {
         uint256 nowTime = now;
@@ -239,8 +243,8 @@ contract Nest_3_TokenAbonus {
     }
     
     /**
-    * @dev 查看总流通量
-    * @return 总流通量
+    * @dev View total circulation 
+    * @return Total circulation
     */
     function allValue(address token) public view returns (uint256) {
         if (token == address(_nestContract)) {
@@ -253,24 +257,24 @@ contract Nest_3_TokenAbonus {
     }
     
     /**
-    * @dev 查看分红周期
-    * @return 分红周期
+    * @dev View bonus period
+    * @return Bonus period
     */
     function checkTimeLimit() public view returns (uint256) {
         return _timeLimit;
     }
     
     /**
-    * @dev 查看领取分红周期
-    * @return 领取分红周期
+    * @dev View duration of triggering calculation of bonus
+    * @return Bonus period
     */
     function checkGetAbonusTimeLimit() public view returns (uint256) {
         return _getAbonusTimeLimit;
     }
     
     /**
-    * @dev 查看当前最低预期分红
-    * @return 当前最低预期分红
+    * @dev View current lowest expected bonus
+    * @return Current lowest expected bonus
     */
     function checkMinimumAbonus(address token) public view returns (uint256) {
         uint256 miningAmount;
@@ -287,33 +291,33 @@ contract Nest_3_TokenAbonus {
     }
     
     /**
-    * @dev 查看分红 token 是否快照
-    * @param token token 地址
-    * @return 是否快照
+    * @dev Check whether the bonus token is snapshoted
+    * @param token Token address
+    * @return Whether snapshoted
     */
     function checkSnapshot(address token) public view returns (bool) {
         return _snapshot[token][_times.sub(1)];
     }
     
     /**
-    * @dev 查看预期分红增量比例
-    * @return 预期分红增量比例
+    * @dev Check the expected bonus incremental ratio
+    * @return Expected bonus increment ratio
     */
     function checkeExpectedIncrement() public view returns (uint256) {
         return _expectedIncrement;
     }
     
     /**
-    * @dev 查看预期最低分红
-    * @return 预期最低分红
+    * @dev View expected minimum bonus
+    * @return Expected minimum bonus
     */
     function checkExpectedMinimum() public view returns (uint256) {
         return _expectedMinimum;
     }
     
     /**
-    * @dev 查看储蓄阈值
-    * @return 储蓄阈值
+    * @dev View savings threshold
+    * @return Save threshold
     */
     function checkSavingLevelOne() public view returns (uint256) {
         return _savingLevelOne;
@@ -326,52 +330,52 @@ contract Nest_3_TokenAbonus {
     }
     
     /**
-    * @dev 查看nest流通量快照
-    * @param token 锁仓 token 地址
-    * @param times 分红快照期数
+    * @dev View NEST liquidity snapshot
+    * @param token Locked token address
+    * @param times Bonus snapshot period
     */
     function checkTokenAllValueHistory(address token, uint256 times) public view returns (uint256) {
         return _tokenAllValueHistory[token][times];
     }
     
     /**
-    * @dev 查看个人锁仓nest快照
-    * @param times 分红快照期数
-    * @param user 用户地址
-    * @return 个人锁仓nest快照数量
+    * @dev View personal lock-up NEST snapshot
+    * @param times Bonus snapshot period
+    * @param user User address
+    * @return The number of personal locked NEST snapshots
     */
     function checkTokenSelfHistory(address token, uint256 times, address user) public view returns (uint256) {
         return _tokenSelfHistory[token][times][user];
     }
     
-    // 查看分红账本期数
+    // View the period number of bonus
     function checkTimes() public view returns (uint256) {
         return _times;
     }
     
-    // NEST预期分红增量阈值
+    // NEST expected bonus increment threshold
     function checkExpectedSpanForNest() public view returns (uint256) {
         return _expectedSpanForNest;
     }
     
-    // NToken预期分红增量阈值
+    // NToken expected bonus increment threshold
     function checkExpectedSpanForNToken() public view returns (uint256) {
         return _expectedSpanForNToken;
     }
     
-    // 查看储蓄阈值2级函数参数
+    // View the function parameters of savings threshold level 3
     function checkSavingLevelTwoSub() public view returns (uint256) {
         return _savingLevelTwoSub;
     }
     
-    // 查看储蓄阈值3级函数参数
+    // View the function parameters of savings threshold level 3
     function checkSavingLevelThreeSub() public view returns (uint256) {
         return _savingLevelThreeSub;
     }
     
     /**
-    * @dev 更新分红周期
-    * @param hour 分红周期(小时)
+    * @dev Update bonus period
+    * @param hour Bonus period (hours)
     */
     function changeTimeLimit(uint256 hour) public onlyOwner {
         require(hour > 0, "Parameter needs to be greater than 0");
@@ -379,8 +383,8 @@ contract Nest_3_TokenAbonus {
     }
     
     /**
-    * @dev 更新领取周期
-    * @param hour 领取周期(小时)
+    * @dev Update collection period
+    * @param hour Collection period (hours)
     */
     function changeGetAbonusTimeLimit(uint256 hour) public onlyOwner {
         require(hour > 0, "Parameter needs to be greater than 0");
@@ -388,8 +392,8 @@ contract Nest_3_TokenAbonus {
     }
     
     /**
-    * @dev 更新预期分红增量比例
-    * @param num 预期分红增量比例
+    * @dev Update expected bonus increment ratio
+    * @param num Expected bonus increment ratio
     */
     function changeExpectedIncrement(uint256 num) public onlyOwner {
         require(num > 0, "Parameter needs to be greater than 0");
@@ -397,8 +401,8 @@ contract Nest_3_TokenAbonus {
     }
     
     /**
-    * @dev 更新预期最低分红
-    * @param num 预期最低分红
+    * @dev Update expected minimum bonus
+    * @param num Expected minimum bonus
     */
     function changeExpectedMinimum(uint256 num) public onlyOwner {
         require(num > 0, "Parameter needs to be greater than 0");
@@ -406,8 +410,8 @@ contract Nest_3_TokenAbonus {
     }
     
     /**
-    * @dev 更新储蓄阈值
-    * @param threshold 储蓄阈值
+    * @dev  Update saving threshold
+    * @param threshold Saving threshold
     */
     function changeSavingLevelOne(uint256 threshold) public onlyOwner {
         _savingLevelOne = threshold;
@@ -420,30 +424,30 @@ contract Nest_3_TokenAbonus {
     }
     
     /**
-    * @dev 更新储蓄阈值2级函数参数
+    * @dev Update the function parameters of savings threshold level 2
     */
     function changeSavingLevelTwoSub(uint256 num) public onlyOwner {
         _savingLevelTwoSub = num;
     }
     
     /**
-    * @dev 更新储蓄阈值3级函数参数
+    * @dev Update the function parameters of savings threshold level 3
     */
     function changeSavingLevelThreeSub(uint256 num) public onlyOwner {
         _savingLevelThreeSub = num;
     }
     
     /**
-    * @dev 更新NEST预期分红增量阈值
-    * @param num 阈值
+    * @dev Update NEST expected bonus incremental threshold
+    * @param num Threshold
     */
     function changeExpectedSpanForNest(uint256 num) public onlyOwner {
         _expectedSpanForNest = num;
     }
     
     /**
-    * @dev 更新NToken预期分红增量阈值
-    * @param num 阈值
+    * @dev Update NToken expected bonus incremental threshold
+    * @param num Threshold
     */
     function changeExpectedSpanForNToken(uint256 num) public onlyOwner {
         _expectedSpanForNToken = num;
@@ -453,44 +457,44 @@ contract Nest_3_TokenAbonus {
         
     }
     
-    // 仅限管理员
+    // Administrator only
     modifier onlyOwner(){
         require(_voteFactory.checkOwners(address(msg.sender)), "No authority");
         _;
     }
 }
 
-// NEST及NToken锁仓合约
+// NEST and NToken lock-up contracts
 interface Nest_3_TokenSave {
     function depositIn(uint256 num, address token, address target) external;
     function checkAmount(address sender, address token) external view returns(uint256);
     function takeOut(uint256 num, address token, address target) external;
 }
 
-// ETH分红池
+// ETH bonus pool
 interface Nest_3_Abonus {
     function getETH(uint256 num, address token, address target) external;
     function getETHNum(address token) external view returns (uint256);
     function switchToEth(address token) external payable;
 }
 
-// 平准合约
+// Leveling contract
 interface Nest_3_Leveling {
     function tranEth(uint256 amount, address token, address target) external returns (uint256);
     function switchToEth(address token) external payable;
 }
 
-// 投票工厂
+// Voting factory contract
 interface Nest_3_VoteFactory {
-    // 查看是否有正在参与的投票 
+    // Check if there is a vote currently participating
     function checkVoteNow(address user) external view returns(bool);
-    // 查询地址
-	function checkAddress(string calldata name) external view returns (address contractAddress);
-	// 查看是否管理员
-	function checkOwners(address man) external view returns (bool);
+    // Check address
+    function checkAddress(string calldata name) external view returns (address contractAddress);
+    // Check whether the administrator
+    function checkOwners(address man) external view returns (bool);
 }
 
-// ERC20合约
+// ERC20 contract
 interface ERC20 {
     function totalSupply() external view returns (uint256);
     function balanceOf(address account) external view returns (uint256);

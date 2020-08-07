@@ -5,8 +5,8 @@ import "../Lib/AddressPayable.sol";
 import "../Lib/SafeERC20.sol";
 
 /**
- * @title 报价合约
- * @dev 包含报价逻辑和挖矿逻辑
+ * @title Offering contract
+ * @dev Offering logic and mining logic
  */
 contract Nest_NToken_OfferMain {
     
@@ -14,60 +14,60 @@ contract Nest_NToken_OfferMain {
     using address_make_payable for address;
     using SafeERC20 for ERC20;
     
-    // 报价单数据结构
+    // Offering data structure
     struct Nest_NToken_OfferPriceData {
-        // 唯一标识通过报价单在数组中的位置确定，通过固定的算法（toIndex(), toAddress()）来互相转化
-        address owner;                              // 报价单拥有者
-        bool deviate;                               // 是否偏离
-        address tokenAddress;                       // 目标报价token的ERC20合约地址
+        // The unique identifier is determined by the position of the offer in the array, and is converted to each other through a fixed algorithm (toindex(), toaddress())
+        address owner;                                  //  Offering owner
+        bool deviate;                                   //  Whether it deviates 
+        address tokenAddress;                           //  The erc20 contract address of the target offer token
         
-        uint256 ethAmount;                          // 报价单中的eth资产账本
-        uint256 tokenAmount;                        // 报价单中的token资产账本
+        uint256 ethAmount;                              //  The ETH amount in the offer list
+        uint256 tokenAmount;                            //  The token amount in the offer list
         
-        uint256 dealEthAmount;                      // 剩余可成交eth数量
-        uint256 dealTokenAmount;                    // 剩余可成交token数量
+        uint256 dealEthAmount;                          //  The remaining number of tradable ETH
+        uint256 dealTokenAmount;                        //  The remaining number of tradable tokens
         
-        uint256 blockNum;                           // 报价单所在的区块编号
-        uint256 serviceCharge;                      // 挖矿手续费
-        // 通过判断ethAmount、tokenAmount、serviceCharge都为0来确定是否已经领取资产
+        uint256 blockNum;                               //  The block number where the offer is located
+        uint256 serviceCharge;                          //  The fee for mining
+        // Determine whether the asset has been collected by judging that ethamount, tokenamount, and servicecharge are all 0
     }
     
-    Nest_NToken_OfferPriceData [] _prices;                              //  用于保存报价单的数组
-    Nest_3_VoteFactory _voteFactory;                                    //  投票合约
-    Nest_3_OfferPrice _offerPrice;                                      //  价格合约
-    Nest_NToken_TokenMapping _tokenMapping;                             //  nToken映射合约
+    Nest_NToken_OfferPriceData [] _prices;                              //  Array used to save offers
+    Nest_3_VoteFactory _voteFactory;                                    //  Voting contract
+    Nest_3_OfferPrice _offerPrice;                                      //  Price contract
+    Nest_NToken_TokenMapping _tokenMapping;                             //  NToken mapping contract
     ERC20 _nestToken;                                                   //  nestToken
-    Nest_3_Abonus _abonus;                                              //  分红池
-    uint256 _miningETH = 10;                                            //  报价挖矿手续费挖矿比例
-    uint256 _tranEth = 1;                                               //  吃单手续费比例
-    uint256 _tranAddition = 2;                                          //  交易加成
-    uint256 _leastEth = 10 ether;                                       //  最少报价eth
-    uint256 _offerSpan = 10 ether;                                      //  报价eth跨度
-    uint256 _deviate = 10;                                              //  价格偏差 10%
-    uint256 _deviationFromScale = 10;                                   //  偏离资产规模
-    uint256 _ownerMining = 5;                                           //  创建者比例
-    uint256 _afterMiningAmount = 0.4 ether;                             //  平稳期出矿量
-    uint32 _blockLimit = 25;                                            //  区块间隔上限
+    Nest_3_Abonus _abonus;                                              //  Bonus pool
+    uint256 _miningETH = 10;                                            //  Offering mining fee ratio
+    uint256 _tranEth = 1;                                               //  Taker fee ratio
+    uint256 _tranAddition = 2;                                          //  Additional transaction multiple
+    uint256 _leastEth = 10 ether;                                       //  Minimum offer of ETH
+    uint256 _offerSpan = 10 ether;                                      //  ETH Offering span
+    uint256 _deviate = 10;                                              //  Price deviation - 10%
+    uint256 _deviationFromScale = 10;                                   //  Deviation from asset scale
+    uint256 _ownerMining = 5;                                           //  Creator ratio
+    uint256 _afterMiningAmount = 0.4 ether;                             //  Stable period mining amount
+    uint32 _blockLimit = 25;                                            //  Block interval upper limit
     
-    uint256 _blockAttenuation = 2400000;                                //  区块衰减间隔
-    mapping(uint256 => mapping(address => uint256)) _blockOfferAmount;  //  区块报价次数 区块号=>token地址=>报价手续费
-    mapping(uint256 => mapping(address => uint256)) _blockMining;       //  报价区块出矿量 区块号=>token地址=>出矿量
-    uint256[10] _attenuationAmount;                                     //  挖矿数量衰减
+    uint256 _blockAttenuation = 2400000;                                //  Block decay interval
+    mapping(uint256 => mapping(address => uint256)) _blockOfferAmount;  //  Block offer times - block number=>token address=>offer fee
+    mapping(uint256 => mapping(address => uint256)) _blockMining;       //  Offering block mining amount - block number=>token address=>mining amount
+    uint256[10] _attenuationAmount;                                     //  Mining decay list
     
-    //  log个人资产合约
+    //  Log token contract address
     event OfferTokenContractAddress(address contractAddress);           
-    //  log,报价合约, token地址,eth数量,erc20数量,延时区块,挖矿手续费
+    //  Log offering contract, token address, amount of ETH, amount of ERC20, delayed block, mining fee
     event OfferContractAddress(address contractAddress, address tokenAddress, uint256 ethAmount, uint256 erc20Amount, uint256 continued,uint256 mining);         
-    //  log交易，交易发起人，交易token地址，交易token数量，买进token地址，买进token数量，被交易报价合约地址，被交易用户地址
+    //  Log transaction sender, transaction token, transaction amount, purchase token address, purchase token amount, transaction offering contract address, transaction user address
     event OfferTran(address tranSender, address tranToken, uint256 tranAmount,address otherToken, uint256 otherAmount, address tradedContract, address tradedOwner);        
-    //  当前区块,当前块出矿量,token地址
+    //  Log current block, current block mined amount, token address
     event OreDrawingLog(uint256 nowBlock, uint256 blockAmount, address tokenAddress);
-    //  报价区块，token地址，token报价次数
+    //  Log offering block, token address, token offered times
     event MiningLog(uint256 blockNum, address tokenAddress, uint256 offerTimes);
     
     /**
-     * 初始化方法
-     * @param voteFactory 投票合约地址
+     * Initialization method
+     * @param voteFactory Voting contract address
      **/
     constructor (address voteFactory) public {
         Nest_3_VoteFactory voteFactoryMap = Nest_3_VoteFactory(address(voteFactory));
@@ -85,8 +85,8 @@ contract Nest_NToken_OfferMain {
     }
     
     /**
-     * 重置投票合约方法
-     * @param voteFactory 投票合约地址
+     * Reset voting contract method
+     * @param voteFactory Voting contract address
      **/
     function changeMapping(address voteFactory) public onlyOwner {
         Nest_3_VoteFactory voteFactoryMap = Nest_3_VoteFactory(address(voteFactory));
@@ -98,16 +98,16 @@ contract Nest_NToken_OfferMain {
     }
     
     /**
-     * 报价方法
-     * @param ethAmount ETH数量
-     * @param erc20Amount erc20Token数量
-     * @param erc20Address erc20Token地址
+     * Offering method
+     * @param ethAmount ETH amount
+     * @param erc20Amount Erc20 token amount
+     * @param erc20Address Erc20 token address
      **/
     function offer(uint256 ethAmount, uint256 erc20Amount, address erc20Address) public payable {
         require(address(msg.sender) == address(tx.origin), "It can't be a contract");
         address nTokenAddress = _tokenMapping.checkTokenMapping(erc20Address);
         require(nTokenAddress != address(0x0));
-        //  判断价格是否偏离
+        //  Judge whether the price deviates
         uint256 ethMining;
         bool isDeviate = comparativePrice(ethAmount,erc20Amount,erc20Address);
         if (isDeviate) {
@@ -121,12 +121,12 @@ contract Nest_NToken_OfferMain {
         if (subValue > 0) {
             repayEth(address(msg.sender), subValue);
         }
-        //  创建报价单
+        //  Create an offer
         createOffer(ethAmount, erc20Amount, erc20Address,isDeviate, ethMining);
-        // 转入报价资产erc20-交易资产到当前合约
+        //  Transfer in offer asset - erc20 to this contract
         ERC20(erc20Address).safeTransferFrom(address(msg.sender), address(this), erc20Amount);
         _abonus.switchToEthForNTokenOffer.value(ethMining)(nTokenAddress);
-        // 挖矿
+        //  Mining
         if (_blockOfferAmount[block.number][erc20Address] == 0) {
             uint256 miningAmount = oreDrawing(nTokenAddress);
             Nest_NToken nToken = Nest_NToken(nTokenAddress);
@@ -137,18 +137,18 @@ contract Nest_NToken_OfferMain {
     }
     
     /**
-     * 生成报价单方法
-     * @param ethAmount ETH数量
-     * @param erc20Amount erc20Token数量
-     * @param erc20Address erc20Token地址
+     * @dev Create offer
+     * @param ethAmount Offering ETH amount
+     * @param erc20Amount Offering erc20 amount
+     * @param erc20Address Offering erc20 address
      **/
     function createOffer(uint256 ethAmount, uint256 erc20Amount, address erc20Address, bool isDeviate, uint256 mining) private {
-        // 检查报价条件
+        // Check offer conditions
         require(ethAmount >= _leastEth, "Eth scale is smaller than the minimum scale");                                                 
         require(ethAmount % _offerSpan == 0, "Non compliant asset span");
         require(erc20Amount % (ethAmount.div(_offerSpan)) == 0, "Asset quantity is not divided");
         require(erc20Amount > 0);
-        // 创建报价合约
+        // Create offering contract
         emit OfferContractAddress(toAddress(_prices.length), address(erc20Address), ethAmount, erc20Amount,_blockLimit,mining);
         _prices.push(Nest_NToken_OfferPriceData(
             msg.sender,
@@ -164,43 +164,43 @@ contract Nest_NToken_OfferMain {
             block.number,
             mining
         ));
-        // 记录价格
+        // Record price
         _offerPrice.addPrice(ethAmount, erc20Amount, block.number.add(_blockLimit), erc20Address, address(msg.sender));
     }
     
-    // 将报价单地址转化为在报价单数组中的索引
+    // Convert offer address into index in offer array
     function toIndex(address contractAddress) public pure returns(uint256) {
         return uint256(contractAddress);
     }
     
-    // 将报价单在报价单数组中的索引转化为报价单地址
+    // Convert index in offer array into offer address 
     function toAddress(uint256 index) public pure returns(address) {
         return address(index);
     }
     
     /**
-     * 取出报价单资金
-     * @param contractAddress 报价单地址
+     * Withdraw offer assets
+     * @param contractAddress Offer address
      **/
     function turnOut(address contractAddress) public {
         require(address(msg.sender) == address(tx.origin), "It can't be a contract");
         uint256 index = toIndex(contractAddress);
         Nest_NToken_OfferPriceData storage offerPriceData = _prices[index];
         require(checkContractState(offerPriceData.blockNum) == 1, "Offer status error");
-        // 取出ETH
+        // Withdraw ETH
         if (offerPriceData.ethAmount > 0) {
             uint256 payEth = offerPriceData.ethAmount;
             offerPriceData.ethAmount = 0;
             repayEth(offerPriceData.owner, payEth);
         }
-        // 取出ERC20
+        // Withdraw erc20
         if (offerPriceData.tokenAmount > 0) {
             uint256 payErc = offerPriceData.tokenAmount;
             offerPriceData.tokenAmount = 0;
             ERC20(address(offerPriceData.tokenAddress)).transfer(offerPriceData.owner, payErc);
             
         }
-        // 挖矿结算
+        // Mining settlement
         if (offerPriceData.serviceCharge > 0) {
             mining(offerPriceData.blockNum, offerPriceData.tokenAddress, offerPriceData.serviceCharge);
             offerPriceData.serviceCharge = 0;
@@ -208,13 +208,13 @@ contract Nest_NToken_OfferMain {
     }
     
     /**
-    * @dev 吃单-支出ETH 买入ERC20
-    * @param ethAmount 本次报价 eth数量
-    * @param tokenAmount 本次报价 erc20数量
-    * @param contractAddress 吃单目标地址
-    * @param tranEthAmount 吃单交易 eth数量
-    * @param tranTokenAmount 吃单交易 erc20数量
-    * @param tranTokenAddress 吃单交易 erc20地址
+    * @dev Taker order - pay ETH and buy erc20
+    * @param ethAmount The amount of ETH of this offer
+    * @param tokenAmount The amount of erc20 of this offer
+    * @param contractAddress The target offer address
+    * @param tranEthAmount The amount of ETH of taker order
+    * @param tranTokenAmount The amount of erc20 of taker order
+    * @param tranTokenAddress The erc20 address of taker order
     */
     function sendEthBuyErc(uint256 ethAmount, uint256 tokenAmount, address contractAddress, uint256 tranEthAmount, uint256 tranTokenAmount, address tranTokenAddress) public payable {
         require(address(msg.sender) == address(tx.origin), "It can't be a contract");
@@ -222,10 +222,10 @@ contract Nest_NToken_OfferMain {
         require(msg.value == ethAmount.add(tranEthAmount).add(serviceCharge), "msg.value needs to be equal to the quotation eth quantity plus transaction eth plus");
         require(tranEthAmount % _offerSpan == 0, "Transaction size does not meet asset span");
         
-        // 获取报价单数据结构
+        //  Get the offer data structure
         uint256 index = toIndex(contractAddress);
         Nest_NToken_OfferPriceData memory offerPriceData = _prices[index]; 
-        //  检测价格, 当前报价对比上一个有效价格
+        //  Check the price, compare the current offer to the last effective price
         bool thisDeviate = comparativePrice(ethAmount,tokenAmount,tranTokenAddress);
         bool isDeviate;
         if (offerPriceData.deviate == true) {
@@ -233,47 +233,47 @@ contract Nest_NToken_OfferMain {
         } else {
             isDeviate = thisDeviate;
         }
-        // 限制吃单报价每次只能是吃单规模的两倍，防止大额攻击
+        //  Limit the taker order only be twice the amount of the offer to prevent large-amount attacks
         if (offerPriceData.deviate) {
-            //  被吃单偏离 x2
+            //  The taker order deviates  x2
             require(ethAmount >= tranEthAmount.mul(_tranAddition), "EthAmount needs to be no less than 2 times of transaction scale");
         } else {
             if (isDeviate) {
-                //  被吃单正常，本次偏离 x10
+                //  If the taken offer is normal and the taker order deviates x10
                 require(ethAmount >= tranEthAmount.mul(_deviationFromScale), "EthAmount needs to be no less than 10 times of transaction scale");
             } else {
-                //  被吃单正常，本次正常 x2
+                //  If the taken offer is normal and the taker order is normal x2
                 require(ethAmount >= tranEthAmount.mul(_tranAddition), "EthAmount needs to be no less than 2 times of transaction scale");
             }
         }
         
-        // 检查吃单条件是否满足
+        // Check whether the conditions for taker order are satisfied
         require(checkContractState(offerPriceData.blockNum) == 0, "Offer status error");
         require(offerPriceData.dealEthAmount >= tranEthAmount, "Insufficient trading eth");
         require(offerPriceData.dealTokenAmount >= tranTokenAmount, "Insufficient trading token");
         require(offerPriceData.tokenAddress == tranTokenAddress, "Wrong token address");
         require(tranTokenAmount == offerPriceData.dealTokenAmount * tranEthAmount / offerPriceData.dealEthAmount, "Wrong token amount");
         
-        // 更新报价单信息
+        // Update the offer information
         offerPriceData.ethAmount = offerPriceData.ethAmount.add(tranEthAmount);
         offerPriceData.tokenAmount = offerPriceData.tokenAmount.sub(tranTokenAmount);
         offerPriceData.dealEthAmount = offerPriceData.dealEthAmount.sub(tranEthAmount);
         offerPriceData.dealTokenAmount = offerPriceData.dealTokenAmount.sub(tranTokenAmount);
         _prices[index] = offerPriceData;
-        // 创建一个新报价
+        // Create a new offer
         createOffer(ethAmount, tokenAmount, tranTokenAddress, isDeviate, 0);
-        // 转入报价资产erc20-交易资产到当前合约
+        // Transfer in erc20 + offer asset to this contract
         if (tokenAmount > tranTokenAmount) {
             ERC20(tranTokenAddress).safeTransferFrom(address(msg.sender), address(this), tokenAmount.sub(tranTokenAmount));
         } else {
             ERC20(tranTokenAddress).safeTransfer(address(msg.sender), tranTokenAmount.sub(tokenAmount));
         }
 
-        // 修改价格
+        // Modify price
         _offerPrice.changePrice(tranEthAmount, tranTokenAmount, tranTokenAddress, offerPriceData.blockNum.add(_blockLimit));
         emit OfferTran(address(msg.sender), address(0x0), tranEthAmount, address(tranTokenAddress), tranTokenAmount, contractAddress, offerPriceData.owner);
         
-        // 转手续费
+        // Transfer fee
         if (serviceCharge > 0) {
             address nTokenAddress = _tokenMapping.checkTokenMapping(tranTokenAddress);
             _abonus.switchToEth.value(serviceCharge)(nTokenAddress);
@@ -281,23 +281,23 @@ contract Nest_NToken_OfferMain {
     }
     
     /**
-    * @dev 吃单-支出erc20 买入ETH
-    * @param ethAmount 本次报价 eth数量
-    * @param tokenAmount 本次报价 erc20数量
-    * @param contractAddress 吃单目标地址
-    * @param tranEthAmount 吃单交易 eth数量
-    * @param tranTokenAmount 吃单交易 erc20数量
-    * @param tranTokenAddress 吃单交易 erc20地址
+    * @dev Taker order - pay erc20 and buy ETH
+    * @param ethAmount The amount of ETH of this offer
+    * @param tokenAmount The amount of erc20 of this offer
+    * @param contractAddress The target offer address
+    * @param tranEthAmount The amount of ETH of taker order
+    * @param tranTokenAmount The amount of erc20 of taker order
+    * @param tranTokenAddress The erc20 address of taker order
     */
     function sendErcBuyEth(uint256 ethAmount, uint256 tokenAmount, address contractAddress, uint256 tranEthAmount, uint256 tranTokenAmount, address tranTokenAddress) public payable {
         require(address(msg.sender) == address(tx.origin), "It can't be a contract");
         uint256 serviceCharge = tranEthAmount.mul(_tranEth).div(1000);
         require(msg.value == ethAmount.sub(tranEthAmount).add(serviceCharge), "msg.value needs to be equal to the quoted eth quantity plus transaction handling fee");
         require(tranEthAmount % _offerSpan == 0, "Transaction size does not meet asset span");
-        // 获取报价单数据结构
+        //  Get the offer data structure
         uint256 index = toIndex(contractAddress);
         Nest_NToken_OfferPriceData memory offerPriceData = _prices[index]; 
-        //  检测价格, 当前报价对比上一个有效价格
+        //  Check the price, compare the current offer to the last effective price
         bool thisDeviate = comparativePrice(ethAmount,tokenAmount,tranTokenAddress);
         bool isDeviate;
         if (offerPriceData.deviate == true) {
@@ -305,39 +305,39 @@ contract Nest_NToken_OfferMain {
         } else {
             isDeviate = thisDeviate;
         }
-        // 限制吃单报价每次只能是吃单规模的两倍，防止大额攻击
+        //  Limit the taker order only be twice the amount of the offer to prevent large-amount attacks
         if (offerPriceData.deviate) {
-            //  被吃单偏离 x2
+            //  The taker order deviates  x2
             require(ethAmount >= tranEthAmount.mul(_tranAddition), "EthAmount needs to be no less than 2 times of transaction scale");
         } else {
             if (isDeviate) {
-                //  被吃单正常，本次偏离 x10
+                //  If the taken offer is normal and the taker order deviates x10
                 require(ethAmount >= tranEthAmount.mul(_deviationFromScale), "EthAmount needs to be no less than 10 times of transaction scale");
             } else {
-                //  被吃单正常，本次正常 x2
+                //  If the taken offer is normal and the taker order is normal x2
                 require(ethAmount >= tranEthAmount.mul(_tranAddition), "EthAmount needs to be no less than 2 times of transaction scale");
             }
         }
-        // 检查吃单条件是否满足
+        // Check whether the conditions for taker order are satisfied
         require(checkContractState(offerPriceData.blockNum) == 0, "Offer status error");
         require(offerPriceData.dealEthAmount >= tranEthAmount, "Insufficient trading eth");
         require(offerPriceData.dealTokenAmount >= tranTokenAmount, "Insufficient trading token");
         require(offerPriceData.tokenAddress == tranTokenAddress, "Wrong token address");
         require(tranTokenAmount == offerPriceData.dealTokenAmount * tranEthAmount / offerPriceData.dealEthAmount, "Wrong token amount");
-        // 更新报价单信息
+        // Update the offer information
         offerPriceData.ethAmount = offerPriceData.ethAmount.sub(tranEthAmount);
         offerPriceData.tokenAmount = offerPriceData.tokenAmount.add(tranTokenAmount);
         offerPriceData.dealEthAmount = offerPriceData.dealEthAmount.sub(tranEthAmount);
         offerPriceData.dealTokenAmount = offerPriceData.dealTokenAmount.sub(tranTokenAmount);
         _prices[index] = offerPriceData;
-        // 创建一个新报价
+        // Create a new offer
         createOffer(ethAmount, tokenAmount, tranTokenAddress, isDeviate, 0);
-        // 转入买ETH的资产+报价资产到当前合约
+        // Transfer in erc20 + offer asset to this contract
         ERC20(tranTokenAddress).safeTransferFrom(address(msg.sender), address(this), tranTokenAmount.add(tokenAmount));
-        // 修改价格
+        // Modify price
         _offerPrice.changePrice(tranEthAmount, tranTokenAmount, tranTokenAddress, offerPriceData.blockNum.add(_blockLimit));
         emit OfferTran(address(msg.sender), address(tranTokenAddress), tranTokenAmount, address(0x0), tranEthAmount, contractAddress, offerPriceData.owner);
-        // 转手续费
+        // Transfer fee
         if (serviceCharge > 0) {
             address nTokenAddress = _tokenMapping.checkTokenMapping(tranTokenAddress);
             _abonus.switchToEth.value(serviceCharge)(nTokenAddress);
@@ -345,8 +345,8 @@ contract Nest_NToken_OfferMain {
     }
     
     /**
-     * 报价出矿
-     * @param ntoken NToken地址
+     * Offering mining
+     * @param ntoken NToken address
      **/
     function oreDrawing(address ntoken) private returns(uint256) {
         Nest_NToken miningToken = Nest_NToken(ntoken);
@@ -366,13 +366,13 @@ contract Nest_NToken_OfferMain {
     }
     
     /**
-     * 取回挖矿
-     * @param token token地址
+     * Retrieve mining
+     * @param token Token address
      **/
     function mining(uint256 blockNum, address token, uint256 serviceCharge) private returns(uint256) {
-        //  区块出矿量 * 手续费 / 区块报价手续费
+        //  Block mining amount*offer fee/block offer fee
         uint256 miningAmount = _blockMining[blockNum][token].mul(serviceCharge).div(_blockOfferAmount[blockNum][token]);        
-        //  转账 nToken
+        //  Transfer NToken 
         Nest_NToken nToken = Nest_NToken(address(_tokenMapping.checkTokenMapping(token)));
         require(nToken.transfer(address(tx.origin), miningAmount), "Transfer failure");
         
@@ -380,7 +380,7 @@ contract Nest_NToken_OfferMain {
         return miningAmount;
     }
     
-    // 比较吃单价格
+    // Compare order prices
     function comparativePrice(uint256 myEthValue, uint256 myTokenValue, address token) private view returns(bool) {
         (uint256 frontEthValue, uint256 frontTokenValue) = _offerPrice.updateAndCheckPricePrivate(token);
         if (frontEthValue == 0 || frontTokenValue == 0) {
@@ -396,7 +396,7 @@ contract Nest_NToken_OfferMain {
         return true;
     }
     
-    // 查看合约状态
+    // Check contract status
     function checkContractState(uint256 createBlock) public view returns (uint256) {
         if (block.number.sub(createBlock) > _blockLimit) {
             return 1;
@@ -404,48 +404,48 @@ contract Nest_NToken_OfferMain {
         return 0;
     }
     
-    // 转账 ETH
+    // Transfer ETH
     function repayEth(address accountAddress, uint256 asset) private {
         address payable addr = accountAddress.make_payable();
         addr.transfer(asset);
     }
     
-    // 查看区块间隔上限
+    // View the upper limit of the block interval
     function checkBlockLimit() public view returns(uint256) {
         return _blockLimit;
     }
     
-    // 查看交易手续费
+    // View taker fee ratio
     function checkTranEth() public view returns (uint256) {
         return _tranEth;
     }
     
-    // 查看交易加成
+    // View additional transaction multiple
     function checkTranAddition() public view returns(uint256) {
         return _tranAddition;
     }
     
-    // 查看最少报价eth
+    // View minimum offering ETH
     function checkleastEth() public view returns(uint256) {
         return _leastEth;
     }
     
-    // 查看报价eth跨度
+    // View offering ETH span
     function checkOfferSpan() public view returns(uint256) {
         return _offerSpan;
     }
 
-    // 查看区块报价次数
+    // View block offering amount
     function checkBlockOfferAmount(uint256 blockNum, address token) public view returns (uint256) {
         return _blockOfferAmount[blockNum][token];
     }
     
-    // 查看报价区块出矿量
+    // View offering block mining amount
     function checkBlockMining(uint256 blockNum, address token) public view returns (uint256) {
         return _blockMining[blockNum][token];
     }
     
-    // 查看报价挖矿数量
+    // View offering mining amount
     function checkOfferMining(uint256 blockNum, address token, uint256 serviceCharge) public view returns (uint256) {
         if (serviceCharge == 0) {
             return 0;
@@ -454,60 +454,60 @@ contract Nest_NToken_OfferMain {
         }
     }
     
-    // 查看拥有者分配比例
+    //  View the owner allocation ratio
     function checkOwnerMining() public view returns(uint256) {
         return _ownerMining;
     }
     
-    // 查看挖矿数量衰减
+    // View the mining decay
     function checkAttenuationAmount(uint256 num) public view returns(uint256) {
         return _attenuationAmount[num];
     }
     
-    // 修改吃单手续费比例
+    // Modify taker order fee ratio
     function changeTranEth(uint256 num) public onlyOwner {
         _tranEth = num;
     }
     
-    // 修改区块间隔上限
+    // Modify block interval upper limit
     function changeBlockLimit(uint32 num) public onlyOwner {
         _blockLimit = num;
     }
     
-    // 修改交易加成
+    // Modify additional transaction multiple
     function changeTranAddition(uint256 num) public onlyOwner {
         require(num > 0, "Parameter needs to be greater than 0");
         _tranAddition = num;
     }
     
-    // 修改最少报价eth
+    // Modify minimum offering ETH
     function changeLeastEth(uint256 num) public onlyOwner {
         require(num > 0, "Parameter needs to be greater than 0");
         _leastEth = num;
     }
     
-    // 修改报价eth跨度
+    // Modify offering ETH span
     function changeOfferSpan(uint256 num) public onlyOwner {
         require(num > 0, "Parameter needs to be greater than 0");
         _offerSpan = num;
     }
     
-    // 修改价格偏差
+    // Modify price deviation
     function changekDeviate(uint256 num) public onlyOwner {
         _deviate = num;
     }
     
-    // 修改偏离资产规模
+    // Modify the deviation from scale 
     function changeDeviationFromScale(uint256 num) public onlyOwner {
         _deviationFromScale = num;
     }
     
-    // 修改拥有者分配比例
+    // Modify the owner allocation ratio
     function changeOwnerMining(uint256 num) public onlyOwner {
         _ownerMining = num;
     }
     
-    // 修改挖矿数量衰减
+    // Modify the mining decay
     function changeAttenuationAmount(uint256 firstAmount, uint256 top, uint256 bottom) public onlyOwner {
         uint256 blockAmount = firstAmount;
         for (uint256 i = 0; i < 10; i ++) {
@@ -516,31 +516,31 @@ contract Nest_NToken_OfferMain {
         }
     }
     
-    // 仅限投票修改
+    // Vote administrators only
     modifier onlyOwner(){
         require(_voteFactory.checkOwners(msg.sender), "No authority");
         _;
     }
     
     /**
-     * 获取报价数组中累计存储的报价单数量
-     * @return 报价数组中累计存储的报价单数量
+     * Get the number of offers stored in the offer array
+     * @return The number of offers stored in the offer array
      **/
     function getPriceCount() view public returns (uint256) {
         return _prices.length;
     }
     
     /**
-     * 根据索引获取报价单信息
-     * @param priceIndex 报价单索引
-     * @return 报价单信息字符串
+     * Get offer information according to the index
+     * @param priceIndex Offer index
+     * @return Offer information
      **/
     function getPrice(uint256 priceIndex) view public returns (string memory) {
-        // 用于生成结果字符串的缓冲数组
+        //  The buffer array used to generate the result string
         bytes memory buf = new bytes(500000);
         uint256 index = 0;
         index = writeOfferPriceData(priceIndex, _prices[priceIndex], buf, index);
-        // 生成结果字符串并返回
+        // Generate the result string and return
         bytes memory str = new bytes(index);
         while(index-- > 0) {
             str[index] = buf[index];
@@ -549,19 +549,19 @@ contract Nest_NToken_OfferMain {
     }
     
     /**
-     * 查找目标账户的合约单（倒序）
-     * @param start 从给定的合约地址对应的索引向前查询（不包含start对应的记录）
-     * @param count 最多返回的记录条数
-     * @param maxFindCount 最多查找maxFindCount记录
-     * @param owner 目标账户地址
-     * @return 合约单记录，字段之间用,分割：
+     * Search the contract address list of the target account (reverse order)
+     * @param start Search forward from the index corresponding to the given contract address (not including the record corresponding to start address)
+     * @param count Maximum number of records to return
+     * @param maxFindCount The max index to search
+     * @param owner Target account address
+     * @return Separate the offer records with symbols. use , to divide fields:  
      * uuid,owner,tokenAddress,ethAmount,tokenAmount,dealEthAmount,dealTokenAmount,blockNum,serviceCharge
      **/
     function find(address start, uint256 count, uint256 maxFindCount, address owner) view public returns (string memory) {
-        // 用于生成结果字符串的缓冲数组
+        // Buffer array used to generate result string
         bytes memory buf = new bytes(500000);
         uint256 index = 0;
-        // 计算查找区间i和end
+        // Calculate search interval i and end
         uint256 i = _prices.length;
         uint256 end = 0;
         if (start != address(0)) {
@@ -570,7 +570,7 @@ contract Nest_NToken_OfferMain {
         if (i > maxFindCount) {
             end = i - maxFindCount;
         }
-        // 循环查找，将符合条件的记录写入缓冲区
+        // Loop search, write qualified records into buffer
         while (count > 0 && i-- > end) {
             Nest_NToken_OfferPriceData memory price = _prices[i];
             if (price.owner == owner) {
@@ -578,7 +578,7 @@ contract Nest_NToken_OfferMain {
                 index = writeOfferPriceData(i, price, buf, index);
             }
         }
-        // 生成结果字符串并返回
+        // Generate result string and return
         bytes memory str = new bytes(index);
         while(index-- > 0) {
             str[index] = buf[index];
@@ -587,26 +587,26 @@ contract Nest_NToken_OfferMain {
     }
     
     /**
-     * 分页获取报价单列表
-     * @param offset 跳过开始的offset条记录
-     * @param count 最多返回的记录条数
-     * @param order 排序规则。0表示倒序，非0表示正序
-     * @return 合约单记录，字段之间用,分割：
+     * Get the list of offers by page
+     * @param offset Skip the first offset records
+     * @param count Maximum number of records to return
+     * @param order Sort rules. 0 means reverse order, non-zero means positive order
+     * @return Separate the offer records with symbols. use , to divide fields: 
      * uuid,owner,tokenAddress,ethAmount,tokenAmount,dealEthAmount,dealTokenAmount,blockNum,serviceCharge
      **/
     function list(uint256 offset, uint256 count, uint256 order) view public returns (string memory) {
         
-        // 用于生成结果字符串的缓冲数组
+        // Buffer array used to generate result string 
         bytes memory buf = new bytes(500000);
         uint256 index = 0;
         
-        // 找区间i和end
+        // Find search interval i and end
         uint256 i = 0;
         uint256 end = 0;
         
         if (order == 0) {
-            // 倒序，默认
-            // 计算查找区间i和end
+            // Reverse order, in default 
+            // Calculate search interval i and end
             if (offset < _prices.length) {
                 i = _prices.length - offset;
             } 
@@ -614,13 +614,13 @@ contract Nest_NToken_OfferMain {
                 end = i - count;
             }
             
-            // 将目标区间内的记录写入缓冲区
+            // Write records in the target interval into the buffer
             while (i-- > end) {
                 index = writeOfferPriceData(i, _prices[i], buf, index);
             }
         } else {
-            // 升序
-            // 计算查找区间i和end
+            // Ascending order
+            // Calculate the search interval i and end
             if (offset < _prices.length) {
                 i = offset;
             } else {
@@ -631,14 +631,14 @@ contract Nest_NToken_OfferMain {
                 end = _prices.length;
             }
             
-            // 将目标区间内的记录写入缓冲区
+            // Write the records in the target interval into the buffer
             while (i < end) {
                 index = writeOfferPriceData(i, _prices[i], buf, index);
                 ++i;
             }
         }
         
-        // 生成结果字符串并返回
+        // Generate the result string and return
         bytes memory str = new bytes(index);
         while(index-- > 0) {
             str[index] = buf[index];
@@ -646,7 +646,7 @@ contract Nest_NToken_OfferMain {
         return string(str);
     }   
      
-    // 将报价单数据结构写入缓冲区，并返回缓冲区索引
+    // Write the offer data into the buffer and return the buffer index
     function writeOfferPriceData(uint256 priceIndex, Nest_NToken_OfferPriceData memory price, bytes memory buf, uint256 index) pure private returns (uint256) {
         
         index = writeAddress(toAddress(priceIndex), buf, index);
@@ -679,7 +679,7 @@ contract Nest_NToken_OfferMain {
         return index;
     }
      
-    // 将整数转成10进制字符串写入缓冲区，并返回缓冲区索引
+    // Convert integer to string in decimal form, write the string into the buffer, and return the buffer index
     function writeUInt(uint256 iv, bytes memory buf, uint256 index) pure public returns (uint256) {
         uint256 i = index;
         do {
@@ -696,7 +696,7 @@ contract Nest_NToken_OfferMain {
         return index;
     }
 
-    // 将地址转成16进制字符串写入缓冲区，并返回缓冲区索引
+    // Convert the address to a hexadecimal string and write it into the buffer, and return the buffer index
     function writeAddress(address addr, bytes memory buf, uint256 index) pure private returns (uint256) {
         
         uint256 iv = uint256(addr);
@@ -723,30 +723,30 @@ contract Nest_NToken_OfferMain {
     }
 }
 
-// 价格合约
+// Price contract
 interface Nest_3_OfferPrice {
-    // 增加价格数据
+    // Add price data
     function addPrice(uint256 ethAmount, uint256 tokenAmount, uint256 endBlock, address tokenAddress, address offerOwner) external;
-    // 修改价格
+    // Modify price
     function changePrice(uint256 ethAmount, uint256 tokenAmount, address tokenAddress, uint256 endBlock) external;
     function updateAndCheckPricePrivate(address tokenAddress) external view returns(uint256 ethAmount, uint256 erc20Amount);
 }
 
-// 投票合约
+// Voting contract
 interface Nest_3_VoteFactory {
-    // 查询地址
-	function checkAddress(string calldata name) external view returns (address contractAddress);
-	// 查看是否管理员
-	function checkOwners(address man) external view returns (bool);
+    //  Check address
+    function checkAddress(string calldata name) external view returns (address contractAddress);
+    // Check whether an administrator
+    function checkOwners(address man) external view returns (bool);
 }
 
-// NToken合约
+// NToken contract
 interface Nest_NToken {
-    // 增发
+    // Additional issuance
     function increaseTotal(uint256 value) external;
-    // 查询挖矿信息
+    // Check mining information
     function checkBlockInfo() external view returns(uint256 createBlock, uint256 recentlyUsedBlock);
-    // 查询创建者
+    // Check creator
     function checkBidder() external view returns(address);
     function totalSupply() external view returns (uint256);
     function balanceOf(address account) external view returns (uint256);
@@ -758,13 +758,13 @@ interface Nest_NToken {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-// NToken映射合约
+// NToken mapping contract
 interface Nest_NToken_TokenMapping {
-    // 查看token映射
+    // Check token mapping
     function checkTokenMapping(address token) external view returns (address);
 }
 
-// 分红池合约
+// Bonus pool contract
 interface Nest_3_Abonus {
     function switchToEth(address token) external payable;
     function switchToEthForNTokenOffer(address token) external payable;

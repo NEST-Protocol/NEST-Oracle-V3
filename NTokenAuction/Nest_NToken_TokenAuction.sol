@@ -5,37 +5,37 @@ import "../Lib/AddressPayable.sol";
 import "../Lib/SafeERC20.sol";
 
 /**
- * @title 拍卖报价token合约
- * @dev 上币拍卖并生成nToken
+ * @title Auction NToken contract 
+ * @dev Auction for listing and generating NToken
  */
 contract Nest_NToken_TokenAuction {
     using SafeMath for uint256;
     using address_make_payable for address;
     using SafeERC20 for ERC20;
     
-    Nest_3_VoteFactory _voteFactory;                            //  投票合约
-    Nest_NToken_TokenMapping _tokenMapping;                     //  NToken 映射合约
+    Nest_3_VoteFactory _voteFactory;                            //  Voting contract
+    Nest_NToken_TokenMapping _tokenMapping;                     //  NToken mapping contract
     ERC20 _nestToken;                                           //  NestToken
-    Nest_3_OfferPrice _offerPrice;                              //  价格合约
-    address _destructionAddress;                                //  销毁合约地址
-    uint256 _duration = 5 days;                                 //  拍卖持续时间
-    uint256 _minimumNest = 100000 ether;                        //  最小拍卖金额
-    uint256 _tokenNum = 1;                                      //  拍卖 token 编号
-    uint256 _incentiveRatio = 50;                               //  激励比例
-    uint256 _minimumInterval = 10000 ether;                     //  最小拍卖区间
-    mapping(address => AuctionInfo) _auctionList;               //  拍卖列表
-    mapping(address => bool) _tokenBlackList;                   //  拍卖黑名单
+    Nest_3_OfferPrice _offerPrice;                              //  Price contract
+    address _destructionAddress;                                //  Destruction contract address
+    uint256 _duration = 5 days;                                 //  Auction duration
+    uint256 _minimumNest = 100000 ether;                        //  Minimum auction amount
+    uint256 _tokenNum = 1;                                      //  Auction token number
+    uint256 _incentiveRatio = 50;                               //  Incentive ratio
+    uint256 _minimumInterval = 10000 ether;                     //  Minimum auction interval
+    mapping(address => AuctionInfo) _auctionList;               //  Auction list
+    mapping(address => bool) _tokenBlackList;                   //  Auction blacklist
     struct AuctionInfo {
-        uint256 endTime;                                        //  开始时间
-        uint256 auctionValue;                                   //  拍卖价格
-        address latestAddress;                                  //  最高拍卖者
-        uint256 latestAmount;                                   //  最后nest资产
+        uint256 endTime;                                        //  End time 
+        uint256 auctionValue;                                   //  Auction price
+        address latestAddress;                                  //  Highest auctioneer
+        uint256 latestAmount;                                   //  Lastest auction amount 
     }
-    address[] _allAuction;                                      //  拍卖列表数组
+    address[] _allAuction;                                      //  Auction list array
     
     /**
-    * @dev 初始化方法
-    * @param voteFactory 投票合约地址
+    * @dev Initialization method
+    * @param voteFactory Voting contract address
     */
     constructor (address voteFactory) public {
         Nest_3_VoteFactory voteFactoryMap = Nest_3_VoteFactory(address(voteFactory));
@@ -47,8 +47,8 @@ contract Nest_NToken_TokenAuction {
     }
     
     /**
-    * @dev 重置投票合约 
-    * @param voteFactory 投票合约地址
+    * @dev Reset voting contract
+    * @param voteFactory Voting contract address
     */
     function changeMapping(address voteFactory) public onlyOwner {
         Nest_3_VoteFactory voteFactoryMap = Nest_3_VoteFactory(address(voteFactory));
@@ -60,9 +60,9 @@ contract Nest_NToken_TokenAuction {
     }
     
     /**
-    * @dev 发起拍卖
-    * @param token 拍卖token地址
-    * @param auctionAmount 初始拍卖资金
+    * @dev Initiating auction
+    * @param token Auction token address
+    * @param auctionAmount Initial auction amount
     */
     function startAnAuction(address token, uint256 auctionAmount) public {
         require(_tokenMapping.checkTokenMapping(token) == address(0x0), "Token already exists");
@@ -70,7 +70,7 @@ contract Nest_NToken_TokenAuction {
         require(auctionAmount >= _minimumNest, "AuctionAmount less than the minimum auction amount");
         require(_nestToken.transferFrom(address(msg.sender), address(this), auctionAmount), "Authorization failed");
         require(!_tokenBlackList[token]);
-        // 验证
+        // Verification
         ERC20 tokenERC20 = ERC20(token);
         tokenERC20.safeTransferFrom(address(msg.sender), address(this), 1);
         require(tokenERC20.balanceOf(address(this)) >= 1);
@@ -81,9 +81,9 @@ contract Nest_NToken_TokenAuction {
     }
     
     /**
-    * @dev 拍卖
-    * @param token 拍卖token地址
-    * @param auctionAmount 拍卖资金
+    * @dev Auction
+    * @param token Auction token address 
+    * @param auctionAmount Auction amount
     */
     function continueAuction(address token, uint256 auctionAmount) public {
         require(now <= _auctionList[token].endTime && _auctionList[token].endTime != 0, "Auction closed");
@@ -93,15 +93,15 @@ contract Nest_NToken_TokenAuction {
         uint256 excitation = subAuctionAmount.mul(_incentiveRatio).div(100);
         require(_nestToken.transferFrom(address(msg.sender), address(this), auctionAmount), "Authorization failed");
         require(_nestToken.transfer(_auctionList[token].latestAddress, _auctionList[token].auctionValue.add(excitation)), "Transfer failure");
-        // 更新拍卖信息
+        // Update auction information
         _auctionList[token].auctionValue = auctionAmount;
         _auctionList[token].latestAddress = address(msg.sender);
         _auctionList[token].latestAmount = _auctionList[token].latestAmount.add(subAuctionAmount.sub(excitation));
     }
     
     /**
-    * @dev 上币
-    * @param token 拍卖token地址
+    * @dev Listing
+    * @param token Auction token address
     */
     function auctionSuccess(address token) public {
         Nest_3_TokenAbonus nestAbonus = Nest_3_TokenAbonus(_voteFactory.checkAddress("nest.v3.tokenAbonus"));
@@ -111,13 +111,13 @@ contract Nest_NToken_TokenAuction {
         uint256 getAbonusTimeLimit = nestAbonus.checkGetAbonusTimeLimit();
         require(!(nowTime >= nextTime.sub(timeLimit) && nowTime <= nextTime.sub(timeLimit).add(getAbonusTimeLimit)), "Not time to auctionSuccess");
         require(nowTime > _auctionList[token].endTime && _auctionList[token].endTime != 0, "Token is on sale");
-        //  初始化 NToken
+        //  Initialize NToken
         Nest_NToken nToken = new Nest_NToken(strConcat("NToken", getAddressStr(_tokenNum)), strConcat("N", getAddressStr(_tokenNum)), address(_voteFactory), address(_auctionList[token].latestAddress));
-        //  拍卖资金销毁
+        //  Auction NEST destruction
         require(_nestToken.transfer(_destructionAddress, _auctionList[token].latestAmount), "Transfer failure");
-        //  加入 NToken 映射
+        //  Add NToken mapping
         _tokenMapping.addTokenMapping(token, address(nToken));
-        //  初始化收费参数
+        //  Initialize charging parameters
         _offerPrice.addPriceCost(token);
         _tokenNum = _tokenNum.add(1);
     }
@@ -137,7 +137,7 @@ contract Nest_NToken_TokenAuction {
         return string(ret);
     } 
     
-    // 转换4位数字字符串
+    // Convert to 4-digit string
     function getAddressStr(uint256 iv) public pure returns (string memory) {
         bytes memory buf = new bytes(64);
         uint256 index = 0;
@@ -152,58 +152,58 @@ contract Nest_NToken_TokenAuction {
         return string(str);
     }
     
-    // 查看拍卖持续时间
+    // Check auction duration
     function checkDuration() public view returns(uint256) {
         return _duration;
     }
     
-    // 查看最小拍卖金额
+    // Check minimum auction amount
     function checkMinimumNest() public view returns(uint256) {
         return _minimumNest;
     }
     
-    // 查看已发起拍卖tokens数量
+    // Check initiated number of auction tokens
     function checkAllAuctionLength() public view returns(uint256) {
         return _allAuction.length;
     }
     
-    // 查看已拍卖 token 地址
+    // View auctioned token addresses
     function checkAuctionTokenAddress(uint256 num) public view returns(address) {
         return _allAuction[num];
     }
     
-    // 查看拍卖黑名单
+    // View auction blacklist
     function checkTokenBlackList(address token) public view returns(bool) {
         return _tokenBlackList[token];
     }
     
-    // 查看拍卖token信息
+    // View auction token information
     function checkAuctionInfo(address token) public view returns(uint256 endTime, uint256 auctionValue, address latestAddress) {
         AuctionInfo memory info = _auctionList[token];
         return (info.endTime, info.auctionValue, info.latestAddress);
     }
     
-    // 查看token编号
+    // View token number
     function checkTokenNum() public view returns (uint256) {
         return _tokenNum;
     }
     
-    // 修改拍卖持续时间
+    // Modify auction duration
     function changeDuration(uint256 num) public onlyOwner {
         _duration = num.mul(1 days);
     }
     
-    // 修改最小拍卖金额
+    // Modify minimum auction amount
     function changeMinimumNest(uint256 num) public onlyOwner {
         _minimumNest = num;
     }
     
-    // 修改拍卖黑名单
+    // Modify auction blacklist
     function changeTokenBlackList(address token, bool isBlack) public onlyOwner {
         _tokenBlackList[token] = isBlack;
     }
     
-    // 仅限管理员操作
+    // Administrator only
     modifier onlyOwner(){
         require(_voteFactory.checkOwners(msg.sender), "No authority");
         _;
@@ -211,27 +211,27 @@ contract Nest_NToken_TokenAuction {
     
 }
 
-// 分红逻辑合约
+// Bonus logic contract
 interface Nest_3_TokenAbonus {
-    // 下次分红时间
+    // View next bonus time 
     function getNextTime() external view returns (uint256);
-    // 分红周期
+    // View bonus period 
     function checkTimeLimit() external view returns (uint256);
-    // 领取分红周期
+    // View duration of triggering calculation of bonus
     function checkGetAbonusTimeLimit() external view returns (uint256);
 }
 
-// 投票合约
+//  voting contract 
 interface Nest_3_VoteFactory {
-    // 查询地址
-	function checkAddress(string calldata name) external view returns (address contractAddress);
-	// 查看是否管理员
-	function checkOwners(address man) external view returns (bool);
+    //  Check address 
+    function checkAddress(string calldata name) external view returns (address contractAddress);
+    //  check whether the administrator 
+    function checkOwners(address man) external view returns (bool);
 }
 
 /**
- * @title ntoken合约
- * @dev 包含标准erc20方法，挖矿增发方法，挖矿数据
+ * @title NToken contract 
+ * @dev Include standard erc20 method, mining method, and mining data 
  */
 interface IERC20 {
     function totalSupply() external view returns (uint256);
@@ -247,44 +247,44 @@ interface IERC20 {
 contract Nest_NToken is IERC20 {
     using SafeMath for uint256;
     
-    mapping (address => uint256) private _balances;                                 //  账本
-    mapping (address => mapping (address => uint256)) private _allowed;             //  授权账本
-    uint256 private _totalSupply = 0 ether;                                         //  总量
-    string public name;                                                             //  名称
-    string public symbol;                                                           //  简称
-    uint8 public decimals = 18;                                                     //  精度
-    uint256 public _createBlock;                                                    //  创建区块
-    uint256 public _recentlyUsedBlock;                                              //  最近使用区块
-    Nest_3_VoteFactory _voteFactory;                                                //  投票合约
-    address _bidder;                                                                //  拥有者
+    mapping (address => uint256) private _balances;                                 //  Balance ledger 
+    mapping (address => mapping (address => uint256)) private _allowed;             //  Approval ledger 
+    uint256 private _totalSupply = 0 ether;                                         //  Total supply 
+    string public name;                                                             //  Token name 
+    string public symbol;                                                           //  Token symbol 
+    uint8 public decimals = 18;                                                     //  Precision
+    uint256 public _createBlock;                                                    //  Create block number
+    uint256 public _recentlyUsedBlock;                                              //  Recently used block number
+    Nest_3_VoteFactory _voteFactory;                                                //  Voting factory contract
+    address _bidder;                                                                //  Owner
     
     /**
-    * @dev 初始化方法
-    * @param _name token名称
-    * @param _symbol token简称
-    * @param voteFactory 投票合约地址
-    * @param bidder 中标者地址
+    * @dev Initialization method
+    * @param _name Token name
+    * @param _symbol Token symbol
+    * @param voteFactory Voting factory contract address
+    * @param bidder Successful bidder address
     */
     constructor (string memory _name, string memory _symbol, address voteFactory, address bidder) public {
-    	name = _name;                                                               
-    	symbol = _symbol;
-    	_createBlock = block.number;
-    	_recentlyUsedBlock = block.number;
-    	_voteFactory = Nest_3_VoteFactory(address(voteFactory));
-    	_bidder = bidder;
+        name = _name;                                                               
+        symbol = _symbol;
+        _createBlock = block.number;
+        _recentlyUsedBlock = block.number;
+        _voteFactory = Nest_3_VoteFactory(address(voteFactory));
+        _bidder = bidder;
     }
     
     /**
-    * @dev 重置投票合约方法
-    * @param voteFactory 投票合约地址
+    * @dev Reset voting contract method
+    * @param voteFactory Voting contract address
     */
     function changeMapping (address voteFactory) public onlyOwner {
-    	_voteFactory = Nest_3_VoteFactory(address(voteFactory));
+        _voteFactory = Nest_3_VoteFactory(address(voteFactory));
     }
     
     /**
-    * @dev 增发
-    * @param value 增发数量
+    * @dev Additional issuance
+    * @param value Additional issuance amount
     */
     function increaseTotal(uint256 value) public {
         address offerMain = address(_voteFactory.checkAddress("nest.nToken.offerMain"));
@@ -295,46 +295,46 @@ contract Nest_NToken is IERC20 {
     }
 
     /**
-    * @dev 查询token总量
-    * @return token总量
+    * @dev Check the total amount of tokens
+    * @return Total supply
     */
     function totalSupply() override public view returns (uint256) {
         return _totalSupply;
     }
 
     /**
-    * @dev 查询地址余额
-    * @param owner 要查询的地址
-    * @return 返回对应地址的余额
+    * @dev Check address balance
+    * @param owner Address to be checked
+    * @return Return the balance of the corresponding address
     */
     function balanceOf(address owner) override public view returns (uint256) {
         return _balances[owner];
     }
     
     /**
-    * @dev 查询区块信息
-    * @return createBlock 初始区块数
-    * @return recentlyUsedBlock 最近挖矿增发区块
+    * @dev Check block information
+    * @return createBlock Initial block number
+    * @return recentlyUsedBlock Recently mined and issued block
     */
     function checkBlockInfo() public view returns(uint256 createBlock, uint256 recentlyUsedBlock) {
         return (_createBlock, _recentlyUsedBlock);
     }
 
     /**
-     * @dev 查询 owner 对 spender 的授权额度
-     * @param owner 发起授权的地址
-     * @param spender 被授权的地址
-     * @return 已授权的金额
+     * @dev Check owner's approved allowance to the spender
+     * @param owner Approving address
+     * @param spender Approved address
+     * @return Approved amount
      */
     function allowance(address owner, address spender) override public view returns (uint256) {
         return _allowed[owner][spender];
     }
 
     /**
-    * @dev 转账方法
-    * @param to 转账目标
-    * @param value 转账金额
-    * @return 转账是否成功
+    * @dev Transfer method
+    * @param to Transfer target
+    * @param value Transfer amount
+    * @return Whether the transfer is successful
     */
     function transfer(address to, uint256 value) override public returns (bool) {
         _transfer(msg.sender, to, value);
@@ -342,10 +342,10 @@ contract Nest_NToken is IERC20 {
     }
 
     /**
-     * @dev 授权方法
-     * @param spender 授权目标
-     * @param value 授权数量
-     * @return 授权是否成功
+     * @dev Approval method
+     * @param spender Approval target
+     * @param value Approval amount
+     * @return Whether the approval is successful
      */
     function approve(address spender, uint256 value) override public returns (bool) {
         require(spender != address(0));
@@ -356,11 +356,11 @@ contract Nest_NToken is IERC20 {
     }
 
     /**
-     * @dev 已授权状态下，从 from地址转账到to地址
-     * @param from 转出的账户地址 
-     * @param to 转入的账户地址
-     * @param value 转账金额
-     * @return 授权转账是否成功
+     * @dev Transfer tokens when approved
+     * @param from Transfer-out account address
+     * @param to Transfer-in account address
+     * @param value Transfer amount
+     * @return Whether approved transfer is successful
      */
     function transferFrom(address from, address to, uint256 value) override public returns (bool) {
         _allowed[from][msg.sender] = _allowed[from][msg.sender].sub(value);
@@ -370,10 +370,10 @@ contract Nest_NToken is IERC20 {
     }
 
     /**
-     * @dev 增加授权额度
-     * @param spender 授权目标
-     * @param addedValue 增加的额度
-     * @return 增加授权额度是否成功
+     * @dev Increase the allowance
+     * @param spender Approval target
+     * @param addedValue Amount to increase
+     * @return whether increase is successful
      */
     function increaseAllowance(address spender, uint256 addedValue) public returns (bool) {
         require(spender != address(0));
@@ -384,10 +384,10 @@ contract Nest_NToken is IERC20 {
     }
 
     /**
-     * @dev 减少授权额度
-     * @param spender 授权目标
-     * @param subtractedValue 减少的额度
-     * @return 减少授权额度是否成功
+     * @dev Decrease the allowance
+     * @param spender Approval target
+     * @param subtractedValue Amount to decrease
+     * @return Whether decrease is successful
      */
     function decreaseAllowance(address spender, uint256 subtractedValue) public returns (bool) {
         require(spender != address(0));
@@ -398,9 +398,9 @@ contract Nest_NToken is IERC20 {
     }
 
     /**
-    * @dev 转账方法
-    * @param to 转账目标
-    * @param value 转账金额
+    * @dev Transfer method
+    * @param to Transfer target
+    * @param value Transfer amount
     */
     function _transfer(address from, address to, uint256 value) internal {
         _balances[from] = _balances[from].sub(value);
@@ -409,37 +409,37 @@ contract Nest_NToken is IERC20 {
     }
     
     /**
-    * @dev 查询创建者
-    * @return 创建者地址
+    * @dev Check the creator
+    * @return Creator address
     */
     function checkBidder() public view returns(address) {
         return _bidder;
     }
     
     /**
-    * @dev 转让创建者
-    * @param bidder 新创建者地址
+    * @dev Transfer creator
+    * @param bidder New creator address
     */
     function changeBidder(address bidder) public {
         require(address(msg.sender) == _bidder);
         _bidder = bidder; 
     }
     
-    // 仅限管理员操作
+    // Administrator only
     modifier onlyOwner(){
         require(_voteFactory.checkOwners(msg.sender));
         _;
     }
 }
 
-// NToken 映射合约
+// NToken mapping contract
 interface Nest_NToken_TokenMapping {
-    //  增加映射
+    //  Add mapping
     function addTokenMapping(address token, address nToken) external;
     function checkTokenMapping(address token) external view returns (address);
 }
 
-// 价格合约
+// Price contract
 interface Nest_3_OfferPrice {
     function addPriceCost(address tokenAddress) external;
 }

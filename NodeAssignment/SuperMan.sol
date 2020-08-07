@@ -181,19 +181,15 @@ contract SuperMan is IERC20 {
         
         
     }
-    
-    //  仅限管理员
+
     modifier onlyOwner(){
         require(mappingContract.checkOwners(msg.sender) == true);
         _;
     }
 }
 
-//  映射合约
 contract IBMapping {
-    //  查询地址
 	function checkAddress(string memory name) public view returns (address contractAddress);
-	//  查看是否管理员
 	function checkOwners(address man) public view returns (bool);
 }
 

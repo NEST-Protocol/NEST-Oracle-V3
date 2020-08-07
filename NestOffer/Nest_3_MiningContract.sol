@@ -4,35 +4,35 @@ import "../Lib/SafeMath.sol";
 import "../Lib/AddressPayable.sol";
 
 /**
- * @title 挖矿合约
- * @dev 矿池存储 + 出矿逻辑
+ * @title Mining contract
+ * @dev Mining pool + mining logic
  */
 contract Nest_3_MiningContract {
     
     using address_make_payable for address;
     using SafeMath for uint256;
     
-    uint256 _blockAttenuation = 2400000;                 //  区块衰减间隔
-    uint256[10] _attenuationAmount;                      //  挖矿数量衰减
-    uint256 _afterMiningAmount = 40 ether;               //  平稳期出矿量
-    uint256 _firstBlockNum;                              //  起始挖矿区块 
-    uint256 _latestMining;                               //  最新报价区块
-    Nest_3_VoteFactory _voteFactory;                     //  投票合约
-    ERC20 _nestContract;                                 //  NEST 合约
-    address _offerFactoryAddress;                        //  报价工厂合约地址
+    uint256 _blockAttenuation = 2400000;                 //  Block decay time interval
+    uint256[10] _attenuationAmount;                      //  Mining decay amount
+    uint256 _afterMiningAmount = 40 ether;               //  Stable period mining amount
+    uint256 _firstBlockNum;                              //  Starting mining block
+    uint256 _latestMining;                               //  Latest offering block
+    Nest_3_VoteFactory _voteFactory;                     //  Voting contract
+    ERC20 _nestContract;                                 //  NEST contract address
+    address _offerFactoryAddress;                        //  Offering contract address
     
-    //  当前区块,当前块出矿量
+    // Current block, current block mining amount
     event OreDrawingLog(uint256 nowBlock, uint256 blockAmount);
     
     /**
-    * @dev 初始化方法
-    * @param voteFactory 投票合约地址
+    * @dev Initialization method
+    * @param voteFactory  voting contract address
     */
     constructor(address voteFactory) public {
         _voteFactory = Nest_3_VoteFactory(address(voteFactory));                  
         _offerFactoryAddress = address(_voteFactory.checkAddress("nest.v3.offerMain"));
         _nestContract = ERC20(address(_voteFactory.checkAddress("nest")));
-        // 初始化挖矿参数
+        // Initiate mining parameters
         _firstBlockNum = 6236588;
         _latestMining = block.number;
         uint256 blockAmount = 400 ether;
@@ -43,8 +43,8 @@ contract Nest_3_MiningContract {
     }
     
     /**
-    * @dev 重置投票合约
-    * @param voteFactory 投票合约地址
+    * @dev Reset voting contract
+    * @param voteFactory Voting contract address
     */
     function changeMapping(address voteFactory) public onlyOwner {
         _voteFactory = Nest_3_VoteFactory(address(voteFactory));                  
@@ -53,14 +53,14 @@ contract Nest_3_MiningContract {
     }
     
     /**
-    * @dev 报价出矿
-    * @return 当前区块出矿量
+    * @dev Offering mining
+    * @return Current block mining amount
     */
     function oreDrawing() public returns (uint256) {
         require(address(msg.sender) == _offerFactoryAddress, "No authority");
-        //  更新出矿量列表
+        //  Update mining amount list
         uint256 miningAmount = changeBlockAmountList();
-        //  转 NEST
+        //  Transfer NEST
         if (_nestContract.balanceOf(address(this)) < miningAmount){
             miningAmount = _nestContract.balanceOf(address(this));
         }
@@ -72,7 +72,7 @@ contract Nest_3_MiningContract {
     }
     
     /**
-    * @dev 更新出矿量列表
+    * @dev Update mining amount list
     */
     function changeBlockAmountList() private returns (uint256) {
         uint256 createBlock = _firstBlockNum;
@@ -91,40 +91,40 @@ contract Nest_3_MiningContract {
     }
     
     /**
-    * @dev 转移所有 NEST
-    * @param target 转移目标地址
+    * @dev Transfer all NEST
+    * @param target Transfer target address
     */
     function takeOutNest(address target) public onlyOwner {
         _nestContract.transfer(address(target),_nestContract.balanceOf(address(this)));
     }
 
-    // 查看区块衰减间隔
+    // Check block decay time interval
     function checkBlockAttenuation() public view returns(uint256) {
         return _blockAttenuation;
     }
     
-    // 查看最新报价区块
+    // Check latest offering block
     function checkLatestMining() public view returns(uint256) {
         return _latestMining;
     }
     
-    // 查看挖矿数量衰减
+    // Check mining amount decay
     function checkAttenuationAmount(uint256 num) public view returns(uint256) {
         return _attenuationAmount[num];
     }
     
-    // 查看 NEST 余额
+    // Check NEST balance
     function checkNestBalance() public view returns(uint256) {
         return _nestContract.balanceOf(address(this));
     }
     
-    // 修改区块衰减间隔
+    // Modify block decay time interval
     function changeBlockAttenuation(uint256 blockNum) public onlyOwner {
         require(blockNum > 0);
         _blockAttenuation = blockNum;
     }
     
-    // 修改挖矿数量衰减
+    // Modify mining amount decay
     function changeAttenuationAmount(uint256 firstAmount, uint256 top, uint256 bottom) public onlyOwner {
         uint256 blockAmount = firstAmount;
         for (uint256 i = 0; i < 10; i ++) {
@@ -133,19 +133,19 @@ contract Nest_3_MiningContract {
         }
     }
     
-    // 仅限管理员操作
+    // Administrator only
     modifier onlyOwner(){
         require(_voteFactory.checkOwners(msg.sender), "No authority");
         _;
     }
 }
 
-// 投票合约
+// Voting contract
 interface Nest_3_VoteFactory {
-    // 查询地址
-	function checkAddress(string calldata name) external view returns (address contractAddress);
-	// 查看是否管理员
-	function checkOwners(address man) external view returns (bool);
+    // Check address
+    function checkAddress(string calldata name) external view returns (address contractAddress);
+    // Check whether administrator
+    function checkOwners(address man) external view returns (bool);
 }
 
 // EC20

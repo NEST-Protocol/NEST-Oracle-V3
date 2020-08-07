@@ -5,49 +5,49 @@ import "../Lib/AddressPayable.sol";
 import "../Lib/SafeERC20.sol";
 
 /**
- * @title 价格合约
- * @dev 价格查询与调用
+ * @title Price contract
+ * @dev Price check and call
  */
 contract Nest_3_OfferPrice{
     using SafeMath for uint256;
     using address_make_payable for address;
     using SafeERC20 for ERC20;
     
-    Nest_3_VoteFactory _voteFactory;                                //  投票合约
+    Nest_3_VoteFactory _voteFactory;                                //  Voting contract
     ERC20 _nestToken;                                               //  NestToken
-    Nest_NToken_TokenMapping _tokenMapping;                         //  NToken映射
-    Nest_3_OfferMain _offerMain;                                    //  报价工厂合约
-    Nest_3_Abonus _abonus;                                          //  分红池
-    address _nTokeOfferMain;                                        //  NToken报价工厂合约
-    address _destructionAddress;                                    //  销毁合约地址
-    address _nTokenAuction;                                         //  NToken拍卖合约地址
-    struct PriceInfo {                                              //  区块价格
-        uint256 ethAmount;                                          //  ETH 数量
-        uint256 erc20Amount;                                        //  ERC20 数量
-        uint256 frontBlock;                                         //  上一个生效区块
-        address offerOwner;                                         //  报价地址
+    Nest_NToken_TokenMapping _tokenMapping;                         //  NToken mapping
+    Nest_3_OfferMain _offerMain;                                    //  Offering main contract
+    Nest_3_Abonus _abonus;                                          //  Bonus pool
+    address _nTokeOfferMain;                                        //  NToken offering main contract
+    address _destructionAddress;                                    //  Destruction contract address
+    address _nTokenAuction;                                         //  NToken auction contract address
+    struct PriceInfo {                                              //  Block price
+        uint256 ethAmount;                                          //  ETH amount
+        uint256 erc20Amount;                                        //  Erc20 amount
+        uint256 frontBlock;                                         //  Last effective block
+        address offerOwner;                                         //  Offering address
     }
-    struct TokenInfo {                                              //  token报价信息
-        mapping(uint256 => PriceInfo) priceInfoList;                //  区块价格列表,区块号 => 区块价格
-        uint256 latestOffer;                                        //  最新生效区块
-        uint256 priceCostLeast;                                     //  价格 ETH 最少费用
-        uint256 priceCostMost;                                      //  价格 ETH 最多费用 
-        uint256 priceCostSingle;                                    //  价格 ETH 单条数据费用
-        uint256 priceCostUser;                                      //  价格 ETH 费用用户比例
+    struct TokenInfo {                                              //  Token offer information
+        mapping(uint256 => PriceInfo) priceInfoList;                //  Block price list, block number => block price
+        uint256 latestOffer;                                        //  Latest effective block
+        uint256 priceCostLeast;                                     //  Minimum ETH cost for prices
+        uint256 priceCostMost;                                      //  Maximum ETH cost for prices
+        uint256 priceCostSingle;                                    //  ETH cost for single data
+        uint256 priceCostUser;                                      //  User ratio of cost 
     }
-    uint256 destructionAmount = 10000 ether;                        //  调用价格销毁 NEST 数量
-    uint256 effectTime = 1 days;                                    //  可以调用价格等待时间
-    mapping(address => TokenInfo) _tokenInfo;                       //  token报价信息
-    mapping(address => bool) _blocklist;                            //  禁止名单
-    mapping(address => uint256) _addressEffect;                     //  调用价格地址生效时间
-    mapping(address => bool) _offerMainMapping;                     //  报价合约映射
+    uint256 destructionAmount = 10000 ether;                        //  Amount of NEST to destroy to call prices
+    uint256 effectTime = 1 days;                                    //  Waiting time to start calling prices
+    mapping(address => TokenInfo) _tokenInfo;                       //  Token offer information
+    mapping(address => bool) _blocklist;                            //  Block list
+    mapping(address => uint256) _addressEffect;                     //  Effective time of address to call prices 
+    mapping(address => bool) _offerMainMapping;                     //  Offering contract mapping
 
-    //  实时价格 token, eth数量, erc20数量
+    //  Real-time price  token, ETH amount, erc20 amount
     event NowTokenPrice(address a, uint256 b, uint256 c);
     
     /**
-    * @dev 初始化方法
-    * @param voteFactory 投票合约地址
+    * @dev Initialization method
+    * @param voteFactory Voting contract address
     */
     constructor (address voteFactory) public {
         Nest_3_VoteFactory voteFactoryMap = Nest_3_VoteFactory(address(voteFactory));
@@ -64,8 +64,8 @@ contract Nest_3_OfferPrice{
     }
     
     /**
-    * @dev 修改投票射合约
-    * @param voteFactory 投票合约地址
+    * @dev Modify voting contract
+    * @param voteFactory Voting contract address
     */
     function changeMapping(address voteFactory) public onlyOwner {
         Nest_3_VoteFactory voteFactoryMap = Nest_3_VoteFactory(address(voteFactory));
@@ -82,8 +82,8 @@ contract Nest_3_OfferPrice{
     }
     
     /**
-    * @dev 初始化 token 价格收费参数
-    * @param tokenAddress token地址
+    * @dev Initialize token price charge parameters
+    * @param tokenAddress Token address
     */
     function addPriceCost(address tokenAddress) public {
         require(msg.sender == _nTokenAuction);
@@ -95,33 +95,33 @@ contract Nest_3_OfferPrice{
     }
     
     /**
-    * @dev 增加价格
-    * @param ethAmount eth数量
-    * @param tokenAmount erc20数量
-    * @param endBlock 生效价格区块
-    * @param tokenAddress erc20地址
-    * @param offerOwner 报价地址
+    * @dev Add price
+    * @param ethAmount ETH amount
+    * @param tokenAmount Erc20 amount
+    * @param endBlock Effective price block
+    * @param tokenAddress Erc20 address
+    * @param offerOwner Offering address
     */
     function addPrice(uint256 ethAmount, uint256 tokenAmount, uint256 endBlock, address tokenAddress, address offerOwner) public onlyOfferMain{
-        // 增加生效区块价格信息
+        // Add effective block price information
         TokenInfo storage tokenInfo = _tokenInfo[tokenAddress];
         PriceInfo storage priceInfo = tokenInfo.priceInfoList[endBlock];
         priceInfo.ethAmount = priceInfo.ethAmount.add(ethAmount);
         priceInfo.erc20Amount = priceInfo.erc20Amount.add(tokenAmount);
         priceInfo.offerOwner = offerOwner;
         if (endBlock != tokenInfo.latestOffer) {
-            // 不同区块报价
+            // If different block offer
             priceInfo.frontBlock = tokenInfo.latestOffer;
             tokenInfo.latestOffer = endBlock;
         }
     }
     
     /**
-    * @dev 吃单修改价格
-    * @param ethAmount eth数量 
-    * @param tokenAmount erc20数量
-    * @param tokenAddress token地址 
-    * @param endBlock 生效价格区块 
+    * @dev Price modification in taker orders
+    * @param ethAmount ETH amount
+    * @param tokenAmount Erc20 amount
+    * @param tokenAddress Token address 
+    * @param endBlock Block of effective price
     */
     function changePrice(uint256 ethAmount, uint256 tokenAmount, address tokenAddress, uint256 endBlock) public onlyOfferMain {
         TokenInfo storage tokenInfo = _tokenInfo[tokenAddress];
@@ -131,11 +131,11 @@ contract Nest_3_OfferPrice{
     }
     
     /**
-    * @dev 更新并查看最新价格
-    * @param tokenAddress token地址 
-    * @return ethAmount eth数量
-    * @return erc20Amount erc20数量
-    * @return blockNum 价格区块
+    * @dev Update and check the latest price
+    * @param tokenAddress Token address
+    * @return ethAmount ETH amount
+    * @return erc20Amount Erc20 amount
+    * @return blockNum Price block
     */
     function updateAndCheckPriceNow(address tokenAddress) public payable returns(uint256 ethAmount, uint256 erc20Amount, uint256 blockNum) {
         require(checkUseNestPrice(address(msg.sender)));
@@ -159,10 +159,10 @@ contract Nest_3_OfferPrice{
     }
     
     /**
-    * @dev 更新并查看最新价格-内部使用
-    * @param tokenAddress token地址 
-    * @return ethAmount eth数量
-    * @return erc20Amount erc20数量
+    * @dev Update and check the latest price-internal use
+    * @param tokenAddress Token address
+    * @return ethAmount ETH amount
+    * @return erc20Amount Erc20 amount
     */
     function updateAndCheckPricePrivate(address tokenAddress) public view onlyOfferMain returns(uint256 ethAmount, uint256 erc20Amount) {
         TokenInfo storage tokenInfo = _tokenInfo[tokenAddress];
@@ -178,15 +178,15 @@ contract Nest_3_OfferPrice{
     }
     
     /**
-    * @dev 更新并查看生效价格列表
-    * @param tokenAddress token地址
-    * @param num 查询条数
-    * @return uint256[] 价格列表
+    * @dev Update and check the effective price list
+    * @param tokenAddress Token address
+    * @param num Number of prices to check
+    * @return uint256[] price list
     */
     function updateAndCheckPriceList(address tokenAddress, uint256 num) public payable returns (uint256[] memory) {
         require(checkUseNestPrice(address(msg.sender)));
         TokenInfo storage tokenInfo = _tokenInfo[tokenAddress];
-        // 收费
+        // Charge
         uint256 thisPay = tokenInfo.priceCostSingle.mul(num);
         if (thisPay < tokenInfo.priceCostLeast) {
             thisPay=tokenInfo.priceCostLeast;
@@ -194,7 +194,7 @@ contract Nest_3_OfferPrice{
             thisPay = tokenInfo.priceCostMost;
         }
         
-        // 提取数据
+        // Extract data
         uint256 length = num.mul(3);
         uint256 index = 0;
         uint256[] memory data = new uint256[](length);
@@ -202,7 +202,7 @@ contract Nest_3_OfferPrice{
         uint256 checkBlock = tokenInfo.latestOffer;
         while(index < length && checkBlock > 0){
             if (checkBlock < block.number && tokenInfo.priceInfoList[checkBlock].ethAmount != 0) {
-                // 增加返回数据
+                // Add return data
                 data[index++] = tokenInfo.priceInfoList[checkBlock].ethAmount;
                 data[index++] = tokenInfo.priceInfoList[checkBlock].erc20Amount;
                 data[index++] = checkBlock;
@@ -214,7 +214,7 @@ contract Nest_3_OfferPrice{
         }
         require(latestOfferOwner != address(0x0));
         require(length == data.length);
-        // 分配
+        // Allocation
         address nToken = _tokenMapping.checkTokenMapping(tokenAddress);
         if (nToken == address(0x0)) {
             _abonus.switchToEth.value(thisPay.sub(thisPay.mul(tokenInfo.priceCostUser).div(10)))(address(_nestToken));
@@ -226,26 +226,26 @@ contract Nest_3_OfferPrice{
         return data;
     }
     
-    // 激活使用价格合约
+    // Activate the price checking function
     function activation() public {
         _nestToken.safeTransferFrom(address(msg.sender), _destructionAddress, destructionAmount);
         _addressEffect[address(msg.sender)] = now.add(effectTime);
     }
     
-    // 转ETH
+    // Transfer ETH
     function repayEth(address accountAddress, uint256 asset) private {
         address payable addr = accountAddress.make_payable();
         addr.transfer(asset);
     }
     
-    // 查看历史区块价格合约-用户
+    // Check block price - user account only
     function checkPriceForBlock(address tokenAddress, uint256 blockNum) public view returns (uint256 ethAmount, uint256 erc20Amount) {
         require(address(msg.sender) == address(tx.origin), "It can't be a contract");
         TokenInfo storage tokenInfo = _tokenInfo[tokenAddress];
         return (tokenInfo.priceInfoList[blockNum].ethAmount, tokenInfo.priceInfoList[blockNum].erc20Amount);
     }    
     
-    // 查看实时价格-用户
+    // Check real-time price - user account only
     function checkPriceNow(address tokenAddress) public view returns (uint256 ethAmount, uint256 erc20Amount, uint256 blockNum) {
         require(address(msg.sender) == address(tx.origin), "It can't be a contract");
         TokenInfo storage tokenInfo = _tokenInfo[tokenAddress];
@@ -260,27 +260,27 @@ contract Nest_3_OfferPrice{
         return (priceInfo.ethAmount,priceInfo.erc20Amount, checkBlock);
     }
     
-    // 查看价格费用分配比例
+    // Check the cost allocation ratio
     function checkPriceCostProportion(address tokenAddress) public view returns(uint256 user, uint256 abonus) {
         return (_tokenInfo[tokenAddress].priceCostUser, uint256(10).sub(_tokenInfo[tokenAddress].priceCostUser));
     }
     
-    // 查看获取价格eth最少费用 
+    // Check the minimum ETH cost of obtaining the price
     function checkPriceCostLeast(address tokenAddress) public view returns(uint256) {
         return _tokenInfo[tokenAddress].priceCostLeast;
     }
     
-    // 查看获取价格eth最多费用 
+    // Check the maximum ETH cost of obtaining the price
     function checkPriceCostMost(address tokenAddress) public view returns(uint256) {
         return _tokenInfo[tokenAddress].priceCostMost;
     }
     
-    // 查看价格eth单条数据费用
+    // Check the cost of a single price data
     function checkPriceCostSingle(address tokenAddress) public view returns(uint256) {
         return _tokenInfo[tokenAddress].priceCostSingle;
     }
     
-    // 查看是否可以调用价格
+    // Check whether the price-checking functions can be called
     function checkUseNestPrice(address target) public view returns (bool) {
         if (!_blocklist[target] && _addressEffect[target] < now && _addressEffect[target] != 0) {
             return true;
@@ -289,88 +289,88 @@ contract Nest_3_OfferPrice{
         }
     }
     
-    // 查看地址是否在黑名单
+    // Check whether the address is in the blocklist
     function checkBlocklist(address add) public view returns(bool) {
         return _blocklist[add];
     }
     
-    // 查看调用价格销毁 nest数量
+    // Check the amount of NEST to destroy to call prices
     function checkDestructionAmount() public view returns(uint256) {
         return destructionAmount;
     }
     
-    // 查看可以调用价格等待时间 
+    // Check the waiting time to start calling prices
     function checkEffectTime() public view returns (uint256) {
         return effectTime;
     }
     
-    // 修改价格费用分配比例
+    // Modify user ratio of cost 
     function changePriceCostProportion(uint256 user, address tokenAddress) public onlyOwner {
         _tokenInfo[tokenAddress].priceCostUser = user;
     }
     
-    // 修改获取价格eth最低费用
+    // Modify minimum ETH cost for prices
     function changePriceCostLeast(uint256 amount, address tokenAddress) public onlyOwner {
         _tokenInfo[tokenAddress].priceCostLeast = amount;
     }
     
-    // 修改获取价格eth最高费用
+    // Modify maximum ETH cost for prices 
     function changePriceCostMost(uint256 amount, address tokenAddress) public onlyOwner {
         _tokenInfo[tokenAddress].priceCostMost = amount;
     }
     
-    // 修改价格eth单条数据费用
+    // Modify ETH cost for single data
     function checkPriceCostSingle(uint256 amount, address tokenAddress) public onlyOwner {
         _tokenInfo[tokenAddress].priceCostSingle = amount;
     }
     
-    // 修改黑名单
+    // Modify the blocklist 
     function changeBlocklist(address add, bool isBlock) public onlyOwner {
         _blocklist[add] = isBlock;
     }
     
-    // 修改调用价格销毁 nest数量
+    // Amount of NEST to destroy to call price-checking functions
     function changeDestructionAmount(uint256 amount) public onlyOwner {
         destructionAmount = amount;
     }
     
-    // 修改可以调用价格等待时间
+    // Modify the waiting time to start calling prices
     function changeEffectTime(uint256 num) public onlyOwner {
         effectTime = num;
     }
 
-    // 仅限报价合约
+    // Offering contract only
     modifier onlyOfferMain(){
         require(_offerMainMapping[address(msg.sender)], "No authority");
         _;
     }
     
-    // 仅限投票修改
+    // Vote administrators only
     modifier onlyOwner(){
         require(_voteFactory.checkOwners(msg.sender), "No authority");
         _;
     }
 }
 
-// 投票合约
+// Voting contract
 interface Nest_3_VoteFactory {
-    // 查询地址
-	function checkAddress(string calldata name) external view returns (address contractAddress);
-	// 查看是否管理员
-	function checkOwners(address man) external view returns (bool);
+    // Check address
+    function checkAddress(string calldata name) external view returns (address contractAddress);
+    // Check whether administrator
+    function checkOwners(address man) external view returns (bool);
 }
 
-// NToken映射合约
+// NToken mapping contract
 interface Nest_NToken_TokenMapping {
     function checkTokenMapping(address token) external view returns (address);
 }
 
-// NEST报价工厂
+// NEST offer main contract
 interface Nest_3_OfferMain {
     function checkTokenAllow(address token) external view returns(bool);
 }
 
-// 分红池合约
+// Bonus pool contract
 interface Nest_3_Abonus {
     function switchToEth(address token) external payable;
 }

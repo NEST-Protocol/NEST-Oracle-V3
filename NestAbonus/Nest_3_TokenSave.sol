@@ -3,36 +3,36 @@ pragma solidity 0.6.0;
 import "../Lib/SafeMath.sol";
 
 /**
- * @title NEST及NToken锁仓合约
- * @dev NEST及NToken存入与取出
+ * @title NEST and NToken lock-up contract
+ * @dev NEST and NToken deposit and withdrawal
  */
 contract Nest_3_TokenSave {
     using SafeMath for uint256;
     
-    Nest_3_VoteFactory _voteFactory;                                 //  投票合约
-    mapping(address => mapping(address => uint256))  _baseMapping;   //  总账本 Token=>用户=>数量 
+    Nest_3_VoteFactory _voteFactory;                                 //  Voting contract
+    mapping(address => mapping(address => uint256))  _baseMapping;   //  Ledger token=>user=>amount
     
     /**
-    * @dev 初始化方法
-    * @param voteFactory 投票合约地址
+    * @dev initialization method
+    * @param voteFactory Voting contract address
     */
     constructor(address voteFactory) public {
         _voteFactory = Nest_3_VoteFactory(voteFactory); 
     }
     
     /**
-    * @dev 重置投票合约
-    * @param voteFactory 投票合约地址
+    * @dev Reset voting contract
+    * @param voteFactory Voting contract address
     */
     function changeMapping(address voteFactory) public onlyOwner {
         _voteFactory = Nest_3_VoteFactory(voteFactory); 
     }
     
     /**
-    * @dev 取出锁仓Token
-    * @param num 取出数量
-    * @param token 锁仓 token 地址
-    * @param target 转账目标
+    * @dev Withdrawing
+    * @param num Withdrawing amount
+    * @param token Lock-up token address
+    * @param target Transfer target
     */
     function takeOut(uint256 num, address token, address target) public onlyContract {
         require(num <= _baseMapping[token][address(target)], "Insufficient storage balance");
@@ -41,10 +41,10 @@ contract Nest_3_TokenSave {
     }
     
     /**
-    * @dev 存入锁仓Token
-    * @param num 存入数量
-    * @param token 锁仓 token 地址
-    * @param target 存入目标
+    * @dev Depositing
+    * @param num Depositing amount
+    * @param token Lock-up token address
+    * @param target Depositing target
     */
     function depositIn(uint256 num, address token, address target) public onlyContract {
         require(ERC20(token).transferFrom(address(target),address(this),num), "Authorization transfer failed");  
@@ -52,29 +52,29 @@ contract Nest_3_TokenSave {
     }
     
     /**
-    * @dev 查看额度
-    * @param sender 查询地址
-    * @param token 锁仓 token 地址
-    * @return uint256 查询地址对应锁仓额度
+    * @dev Check the amount
+    * @param sender Check address
+    * @param token Lock-up token address
+    * @return uint256 Check address corresponding lock-up limit 
     */
     function checkAmount(address sender, address token) public view returns(uint256) {
         return _baseMapping[token][address(sender)];
     }
     
-    // 仅限管理员
+    // Administrators only
     modifier onlyOwner(){
         require(_voteFactory.checkOwners(address(msg.sender)), "No authority");
         _;
     }
     
-    // 仅限分红逻辑合约
+    // Only for bonus logic contract
     modifier onlyContract(){
         require(_voteFactory.checkAddress("nest.v3.tokenAbonus") == address(msg.sender), "No authority");
         _;
     }
 }
 
-// EC20合约
+// ERC20 contract
 interface ERC20 {
     function totalSupply() external view returns (uint256);
     function balanceOf(address account) external view returns (uint256);
@@ -86,10 +86,10 @@ interface ERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-// 投票工厂
+// Voting factory
 interface Nest_3_VoteFactory {
-    // 查询地址
-	function checkAddress(string calldata name) external view returns (address contractAddress);
-	// 查看是否管理员
-	function checkOwners(address man) external view returns (bool);
+    // Check address
+    function checkAddress(string calldata name) external view returns (address contractAddress);
+    // Check whether the administrator
+    function checkOwners(address man) external view returns (bool);
 }
