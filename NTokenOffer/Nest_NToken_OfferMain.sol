@@ -202,7 +202,7 @@ contract Nest_NToken_OfferMain {
         }
         // Mining settlement
         if (offerPriceData.serviceCharge > 0) {
-            mining(offerPriceData.blockNum, offerPriceData.tokenAddress, offerPriceData.serviceCharge);
+            mining(offerPriceData.blockNum, offerPriceData.tokenAddress, offerPriceData.serviceCharge, offerPriceData.owner);
             offerPriceData.serviceCharge = 0;
         }
     }
@@ -369,12 +369,12 @@ contract Nest_NToken_OfferMain {
      * Retrieve mining
      * @param token Token address
      **/
-    function mining(uint256 blockNum, address token, uint256 serviceCharge) private returns(uint256) {
+    function mining(uint256 blockNum, address token, uint256 serviceCharge, address owner) private returns(uint256) {
         //  Block mining amount*offer fee/block offer fee
         uint256 miningAmount = _blockMining[blockNum][token].mul(serviceCharge).div(_blockOfferAmount[blockNum][token]);        
         //  Transfer NToken 
         Nest_NToken nToken = Nest_NToken(address(_tokenMapping.checkTokenMapping(token)));
-        require(nToken.transfer(address(tx.origin), miningAmount), "Transfer failure");
+        require(nToken.transfer(address(owner), miningAmount), "Transfer failure");
         
         emit MiningLog(blockNum, token,_blockOfferAmount[blockNum][token]);
         return miningAmount;
