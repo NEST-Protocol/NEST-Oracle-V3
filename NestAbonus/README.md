@@ -1,19 +1,17 @@
-# Nest3.0分红操作
 
-## NEST 投票合约（Nest_3_VoteFactory）
-github地址：https://github.com/NEST-Protocol/NEST-oracle-V3/blob/master/VoteContract/Nest_3_VoteFactory.sol
 
-合约地址（主网）：0x6Cd5698E8854Fb6879d6B1C694223b389B465dea
+## NEST Vote Contract（Nest_3_VoteFactory）
+github address：https://github.com/NEST-Protocol/NEST-oracle-V3/blob/master/VoteContract/Nest_3_VoteFactory.sol
 
-合约地址（Ropsten）：0xa43f89dE7f9da44aa4d11106D7b829cf6ac0b561
+contract address（mainnet）：0x6Cd5698E8854Fb6879d6B1C694223b389B465dea
 
-### 建议
-使用NEST系统合约进行操作或查询时，对应合约地址不建议设置固定值。可以通过投票合约checkAddress方法获取，动态获取对应合约的地址。避免合约升级后，链下更改代码。
+contract address（Ropsten）：0xa43f89dE7f9da44aa4d11106D7b829cf6ac0b561
+
+### Suggestions
+When using the NEST system contract for operations or quer, it is not recommended to set a fixed value for `contract address`. It can be obtained through the `checkAddress` method of the vote contract to dynamically obtain the address of the corresponding contract. Avoid changing the code off-chain after the contract is upgraded.
 
 ```
-// 获取 NEST Token 合约地址
 _nestAddress = address(_voteFactory.checkAddress("nest"));
-// 获取 NEST 系统收益分配逻辑合约地址
 _tokenAbonus = _voteFactory.checkAddress("nest.v3.tokenAbonus");
 .....
 .....
@@ -21,54 +19,54 @@ _tokenAbonus = _voteFactory.checkAddress("nest.v3.tokenAbonus");
 ```
 
 
-### NEST 系统收益池合约（Nest_3_Abonus）
-github地址：https://github.com/NEST-Protocol/NEST-oracle-V3/blob/master/NestAbonus/Nest_3_Abonus.sol
+### NEST bonus pool contract（Nest_3_Abonus）
+github address：https://github.com/NEST-Protocol/NEST-oracle-V3/blob/master/NestAbonus/Nest_3_Abonus.sol
 
-查询字段："nest.v3.abonus"
+query field："nest.v3.abonus"
 
-合约地址（主网）：0x43121397631551357EA511E62163B76e39D44852
+contract address（mainnet）：0x43121397631551357EA511E62163B76e39D44852
 
-合约地址（Ropsten）：0x559B1628ee6558EAb5E8a12A8951ecdF6f40EA28
+contract address（Ropsten）：0x559B1628ee6558EAb5E8a12A8951ecdF6f40EA28
 
-### NEST 系统储蓄合约（Nest_3_Leveling）
-github地址：https://github.com/NEST-Protocol/NEST-oracle-V3/blob/master/NestAbonus/Nest_3_Leveling.sol
+### NEST leveling contract（Nest_3_Leveling）
+github address：https://github.com/NEST-Protocol/NEST-oracle-V3/blob/master/NestAbonus/Nest_3_Leveling.sol
 
-查询字段："nest.v3.leveling"
+query field："nest.v3.leveling"
 
-合约地址（主网）：0xaE2D09D7974a933c6dDC06b8039cF09783f4bAe8
+contract address（mainnet）：0xaE2D09D7974a933c6dDC06b8039cF09783f4bAe8
 
-合约地址（Ropsten）：0x9e9e49334a4e5506d5DA62e78602547EDf173C67
+contract address（Ropsten）：0x9e9e49334a4e5506d5DA62e78602547EDf173C67
 
-### NEST 系统收益锁仓验证合约（Nest_3_TokenSave）
-github地址：https://github.com/NEST-Protocol/NEST-oracle-V3/blob/master/NestAbonus/Nest_3_TokenSave.sol
+### NEST abonus save contract（Nest_3_TokenSave）
+github address：https://github.com/NEST-Protocol/NEST-oracle-V3/blob/master/NestAbonus/Nest_3_TokenSave.sol
 
-查询字段："nest.v3.tokenSave"
+query field："nest.v3.tokenSave"
 
-合约地址（主网）：0x03904F4B9Fb54c61AAf96d0aCDD2e42a46c99102
+contract address（mainnet）：0x03904F4B9Fb54c61AAf96d0aCDD2e42a46c99102
 
-合约地址（Ropsten）：0xdC912578B5e8f24b13E79ab072a1E9C86e659694
+contract address（Ropsten）：0xdC912578B5e8f24b13E79ab072a1E9C86e659694
 
-### NEST 系统收益分配逻辑合约（Nest_3_TokenAbonus）
-github地址：https://github.com/NEST-Protocol/NEST-oracle-V3/blob/master/NestAbonus/Nest_3_TokenAbonus.sol
+### NEST bonus logic contract（Nest_3_TokenAbonus）
+github address：https://github.com/NEST-Protocol/NEST-oracle-V3/blob/master/NestAbonus/Nest_3_TokenAbonus.sol
 
-查询字段："nest.v3.tokenAbonus"
+query field："nest.v3.tokenAbonus"
 
-合约地址（主网）：0x19E1d193A448bD13097EFC2aea867468726e67c5
+contract address（mainnet）：0x19E1d193A448bD13097EFC2aea867468726e67c5
 
-合约地址（Ropsten）：0xDE83944619005d5EE4AAB951199748D599fCff44
+contract address（Ropsten）：0xDE83944619005d5EE4AAB951199748D599fCff44
 
-### NEST Token 合约（ERC20）
-github地址：https://github.com/NEST-Protocol/NEST-oracle-V3/blob/master/NestToken/IBNEST.sol
+### NEST Token contract（ERC20）
+github address：https://github.com/NEST-Protocol/NEST-oracle-V3/blob/master/NestToken/IBNEST.sol
 
-查询字段："nest"
+query field："nest"
 
-合约地址（主网）：0x04abEdA201850aC0124161F037Efd70c74ddC74C
+contract address（mainnet）：0x04abEdA201850aC0124161F037Efd70c74ddC74C
 
-合约地址（Ropsten）：0xf565422eBd4A8976e1e447a849b8B483C68EFD0C
+contract address（Ropsten）：0xf565422eBd4A8976e1e447a849b8B483C68EFD0C
 
-## 操作
-### 授权（存入Token前必须授权）- Nest_3_TokenSave
-存入Nest或NToken前，需要调用ERC20合约授权方法，对 “NEST系统收益锁仓验证合约” 授权。
+## Operations
+### Approval（Approval should be done before depositing Tokens）- Nest_3_TokenSave
+Before depositing Nest or NToken，you should call ERC20 Approval method for "NestNode bonus save contract".
 
 ```
 function approve(address _spender, uint256 _value) public returns (bool) {
@@ -78,68 +76,68 @@ function approve(address _spender, uint256 _value) public returns (bool) {
   }
 ```
 
-### 存入 - Nest_3_TokenAbonus
-授权后，在非领取期（周一0点~周五12点），调用NEST系统收益分配逻辑合约（Nest_3_TokenAbonus），“depositIn”方法，存入对应的Token。
+### Depositing - Nest_3_TokenAbonus
+After the approcal，in non-receiving period ( Monday 0h - Friday 12h），call  `depositIn` method in "NEST bonus logic contract"（Nest_3_TokenAbonus)，and deposit Tokens。
 ```
 function depositIn(uint256 amount, address token) public
 ```
-### 取出 - Nest_3_TokenAbonus
-没有参与投票的情况下，任何时候都可以进行取出操作。调用NEST系统收益分配逻辑合约（Nest_3_TokenAbonus），“takeOut”方法，取出对应的Token。
+### Withdrawing - Nest_3_TokenAbonus
+In the condition of not participating in voting，withdrawing can be performed at any time. Call `takeOut` method in "NEST bonus logic contract"（Nest_3_TokenAbonus），and withdraw Tokens.
 ```
 function takeOut(uint256 amount, address token) public
 ```
-### 领取分红 - Nest_3_TokenAbonus
-领取期（周五12点~周日24点），调用NEST系统收益分配逻辑合约（Nest_3_TokenAbonus），“getAbonus”方法，领取对应token的分红。
+### Getting bonus - Nest_3_TokenAbonus
+Receiving period（Friaday 12h~Sunday 24h），call `getAbonus` method in "NEST bonus logic contract"（Nest_3_TokenAbonus)，receive bonus of tokens.
 
 ```
 function getAbonus(address token) public
 ```
-### 查询分红信息 - Nest_3_TokenAbonus
-输入参数 | 类型 | 描述
+### Checking bonus information - Nest_3_TokenAbonus
+input parameter | type | description 
 ---|---|---
-token | address | NEST或其他NToken地址
+token | address | NEST or other NToken address 
 
-返回参数 | 类型 | 描述
+returned parameter | type | description 
 ---|---|---
-nextTime | uint256 | 下次领取收益时间
-getAbonusTime | uint256 | 本次领取收益截止时间
-ethNum | uint256 | 收益池ETH数量
-tokenValue | uint256 | 锁仓Token总流通量
-myJoinToken | uint256 | 我存入的Token数量
-getEth | uint256 | 我本期可领取的ETH数量
-allowNum | uint256 | 我的锁仓Token对于‘NEST系统收益锁仓验证合约’的授权额度
-leftNum | uint256 | 我的锁仓Token余额（个人钱包余额）
-allowAbonus | bool | 本期是否已领取分红（true为已领取）
+nextTime | uint256 | Next bonus time 
+getAbonusTime | uint256 | Deadline to receive bonus in this period 
+ethNum | uint256 | Amount of ETH in bonus pool 
+tokenValue | uint256 | circulation of locked Tokens 
+myJoinToken | uint256 | The amount of my deposited Tokens 
+getEth | uint256 | The amount of ETH I can receive in this period 
+allowNum | uint256 | My approved allowance to "NestNode bonus save contract" 
+leftNum | uint256 | My balance of approved Token (in personal wallet) 
+allowAbonus | bool | Whether bonus is received in this period（true for received） 
 
-> 非领取期内或在领取期没有触发快照，ethNum和tokenValue显示实时数据。
+> In non-receiving period or snapshot is not triggered in receiving period, ethNum and tokenValue show real-time data.
 
-> 在领取期内已经触发快照，ethNum和tokenValue显示快照数据。
+> In receiving period or snapshot is triggered, ethNum and tokenValue show snapshot data.
 
-> 本期没有领取过收益，getEth返回可以领取的额度。已经领取过收益，getEth返回0。
+> When bonus is not received in this period，getEth returns the amount to receive. When bonus is received, getEth returns 0. 
 
 ```
 function getInfo(address token) public view returns (uint256 nextTime, uint256 getAbonusTime, uint256 ethNum, uint256 tokenValue, uint256 myJoinToken, uint256 getEth, uint256 allowNum, uint256 leftNum, bool allowAbonus)
 ```
-### 查询储蓄基金金额 - Nest_3_Leveling
-输入参数 | 类型 | 描述
+### Checking fund amount of leveling savings - Nest_3_Leveling
+input parameter | type | description 
 ---|---|---
-token | address | NEST或其他NToken地址
+token | address | NEST or other NToken address 
 
-返回参数 | 类型 | 描述
+returned parameter | type | description 
 ---|---|---
----| uint256 | 储蓄基金金额（实时数据）
+---| uint256 | leveling savings amount (real-time data) 
 ```
 function checkEthMapping(address token) public view returns (uint256)
 ```
 
-### 查询收益池金额 - Nest_3_Abonus
-输入参数 | 类型 | 描述
+### Checking fund amount of bonus pool - Nest_3_Abonus
+input parameter | type | description 
 ---|---|---
-token | address | NEST或其他NToken地址
+token | address | NEST or other NToken address 
 
-返回参数 | 类型 | 描述
+returned parameter | type | description 
 ---|---|---
----| uint256 | 收益池金额（实时数据）
+---| uint256 | bonus pool  amount (real-time data) 
 ```
 function getETHNum(address token) public view returns (uint256) 
 ```
