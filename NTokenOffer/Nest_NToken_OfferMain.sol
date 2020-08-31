@@ -197,7 +197,7 @@ contract Nest_NToken_OfferMain {
         if (offerPriceData.tokenAmount > 0) {
             uint256 payErc = offerPriceData.tokenAmount;
             offerPriceData.tokenAmount = 0;
-            ERC20(address(offerPriceData.tokenAddress)).transfer(offerPriceData.owner, payErc);
+            ERC20(address(offerPriceData.tokenAddress)).safeTransfer(address(offerPriceData.owner), payErc);
             
         }
         // Mining settlement
