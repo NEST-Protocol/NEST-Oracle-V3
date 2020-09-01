@@ -22,17 +22,17 @@ Nest_3_OfferPrice _offerPrice = Nest_3_OfferPrice(address(_voteFactory.checkAddr
 > Method2：Before calling the price, check the corresponding  charging standard of ERC20 from the price contract, calculate the fee based on the charging rules, and then call the price.
 
 ```
-    //  查看获取价格eth最少费用 
+    //  Check the minimum ETH cost of obtaining the price 
     function checkPriceCostLeast(address tokenAddress) public view returns(uint256) {
         return _tokenInfo[tokenAddress].priceCostLeast;
     }
     
-    //  查看获取价格eth最多费用 
+    //  Check the maximum ETH cost of obtaining the price 
     function checkPriceCostMost(address tokenAddress) public view returns(uint256) {
         return _tokenInfo[tokenAddress].priceCostMost;
     }
     
-    //  查看价格eth单条数据费用
+    //  Check the cost of a single price data
     function checkPriceCostSingle(address tokenAddress) public view returns(uint256) {
         return _tokenInfo[tokenAddress].priceCostSingle;
     }
@@ -166,51 +166,51 @@ contract Nest_3_GetPrice {
     using SafeMath for uint256;
     using SafeERC20 for ERC20;
     
-    // 投票合约
+    // Voting contract
     Nest_3_VoteFactory _voteFactory;
     
     event price(uint256 ethAmount, uint256 tokenAmount, uint256 blockNum, uint256 ethMultiple, uint256 tokenForEth);
     event averagePrice(uint256 price);
     
     /**
-     * @dev 初始化方法
-     * @param voteFactory 投票合约
+     * @dev Initialization method
+     * @param voteFactory Voting contract
      */
     constructor (address voteFactory) public {
         _voteFactory = Nest_3_VoteFactory(address(voteFactory));
     }
     
     /**
-     * @dev 获取单条价格
-     * @param token 获取价格的 token 地址
+     * @dev Get a single price
+     * @param token Token address of the price
      */
     function getSinglePrice(address token) public payable {
-        // 考虑到未来升级，不排除升级价格合约的可能，必须使用投票合约查询价格合约地址。
+        // In consideration of future upgrades, the possibility of upgrading the price contract is not ruled out, and the voting contract must be used to query the price contract address.
         Nest_3_OfferPrice _offerPrice = Nest_3_OfferPrice(address(_voteFactory.checkAddress("nest.v3.offerPrice")));
-        // 请求最新价格，返回 eth数量、token数量、生效价格区块号。费用暂定
+        // Request the latest price, return the eth quantity, token quantity, and effective price block number. Tentative fee.
         (uint256 ethAmount, uint256 tokenAmount, uint256 blockNum) = _offerPrice.updateAndCheckPriceNow.value(0.001 ether)(token);
         uint256 ethMultiple = ethAmount.div(1 ether);
         uint256 tokenForEth = tokenAmount.div(ethMultiple);
-        // 如果支付价格的 eth 有剩余，需要处理
+        // If the eth paid for the price is left, it needs to be processed.
         // ........
         
         emit price(ethAmount, tokenAmount, blockNum, ethMultiple, tokenForEth);
     }
     
     /**
-     * @dev 获取多条价格
-     * @param token 获取价格的 token 地址
-     * @param priceNum 获取价格的数量，从最新价格开始往后依次排序
+     * @dev Get multiple prices
+     * @param token The token address of the price
+     * @param priceNum Get the number of prices, sorted from the latest price
      */
     function getBatchPrice(address token, uint256 priceNum) public payable {
-        // 考虑到未来升级，不排除升级价格合约的可能，必须使用投票合约查询价格合约地址。
+        // In consideration of future upgrades, the possibility of upgrading the price contract is not ruled out, and the voting contract must be used to query the price contract address.
         Nest_3_OfferPrice _offerPrice = Nest_3_OfferPrice(address(_voteFactory.checkAddress("nest.v3.offerPrice")));
         /**
-         * 返回的数组是3的整数倍，3个数据为一个价格数据
-         * 分别对应，eth数量、token数量、生效价格区块号
+         * The returned array is an integer multiple of 3, 3 data is a price data.
+         * Corresponding respectively, eth quantity, token quantity, effective price block number.
          */
         uint256[] memory priceData = _offerPrice.updateAndCheckPriceList.value(0.01 ether)(token, priceNum);
-        // 处理数据
+        // Data processing
         uint256 allTokenForEth = 0;
         uint256 priceDataNum = priceData.length.div(3);
         for (uint256 i = 0; i < priceData.length;) {
@@ -219,9 +219,9 @@ contract Nest_3_GetPrice {
             allTokenForEth = allTokenForEth.add(tokenForEth);
             i = i.add(3);
         }
-        // 平均价格
+        // Average price
         uint256 calculationPrice = allTokenForEth.div(priceDataNum);
-        // 如果支付价格的 eth 有剩余，需要处理
+        // If the eth paid for the price is left, it needs to be processed.
         // ........
         
         
@@ -229,70 +229,70 @@ contract Nest_3_GetPrice {
     }
     
     /**
-     * @dev 激活
-     * @param nestAddress nestToken地址
-     * @param nestAmount 激活销毁 Nest 数量
+     * @dev Activate the price checking function
+     * @param nestAddress NestToken address
+     * @param nestAmount Destroy Nest quantity
      */
     function activation(address nestAddress, uint256 nestAmount) public {
-        // 考虑到未来升级，不排除升级价格合约的可能，必须使用投票合约查询价格合约地址。
+        // In consideration of future upgrades, the possibility of upgrading the price contract is not ruled out, and the voting contract must be used to query the price contract address.
         Nest_3_OfferPrice _offerPrice = Nest_3_OfferPrice(address(_voteFactory.checkAddress("nest.v3.offerPrice")));
-        // 向价格合约授权 Nest，暂定数量为1万 
+        // Authorize Nest to the price contract, the tentative quantity is 10,000
         ERC20(nestAddress).safeApprove(address(_offerPrice), nestAmount);
-        // 激活
+        // Activation
         _offerPrice.activation();
     }
     
-    // 接收 eth 方法，必须实现
+    // Receive eth method, must be implemented.
     receive() external payable {
         
     }
     
 }
 
-// 投票合约
+// Voting contract
 interface Nest_3_VoteFactory {
-    // 查询地址
+    // Check address
     function checkAddress(string calldata name) external view returns (address contractAddress);
 }
 
-// 价格合约
+// Pricing contract
 interface Nest_3_OfferPrice {
     /**
-    * @dev 激活
+    * @dev Activate the price checking function
     */
     function activation() external;
     
     /**
-    * @dev 查看最新价格
-    * @param tokenAddress erc20地址 
-    * @return ethAmount eth数量
-    * @return erc20Amount erc20数量
-    * @return blockNum 生效价格区块号
+    * @dev Update and check the latest price
+    * @param tokenAddress Token address
+    * @return ethAmount ETH amount
+    * @return erc20Amount Erc20 amount
+    * @return blockNum Price block
     */
     function updateAndCheckPriceNow(address tokenAddress) external payable returns(uint256 ethAmount, uint256 erc20Amount, uint256 blockNum);
     /**
-    * @dev 查看生效价格列表
-    * @param tokenAddress erc20地址
-    * @param num 查询条数
-    * @return uint256[] 价格列表
+    * @dev Update and check the effective price list
+    * @param tokenAddress Token address
+    * @param num Number of prices to check
+    * @return uint256[] price list
     */
     function updateAndCheckPriceList(address tokenAddress, uint256 num) external payable returns (uint256[] memory);
     /**
-    * @dev 查看获取价格eth最少费用
-    * @param tokenAddress erc20地址
-    * @return uint256 获取价格eth最少费用 
+    * @dev Check the minimum ETH cost of obtaining the price
+    * @param tokenAddress erc20 address
+    * @return uint256 the minimum ETH cost of obtaining the price
     */
     function checkPriceCostLeast(address tokenAddress) external view returns(uint256);
     /**
-    * @dev 查看获取价格eth最多费用 
-    * @param tokenAddress erc20地址
-    * @return uint256 获取价格eth最多费用 
+    * @dev Check the maximum ETH cost of obtaining the price
+    * @param tokenAddress erc20 address
+    * @return uint256 the maximum ETH cost of obtaining the price
     */
     function checkPriceCostMost(address tokenAddress) external view returns(uint256);
     /**
-    * @dev 查看获取价格eth单条数据费用
-    * @param tokenAddress erc20地址
-    * @return uint256 获取价格eth单条数据费用
+    * @dev Check the cost of a single price data
+    * @param tokenAddress erc20 address
+    * @return uint256 the cost of a single price data
     */
     function checkPriceCostSingle(address tokenAddress) external view returns(uint256);
 }
