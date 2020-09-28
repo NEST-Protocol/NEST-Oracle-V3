@@ -22,19 +22,9 @@ Nest_3_OfferPrice _offerPrice = Nest_3_OfferPrice(address(_voteFactory.checkAddr
 > Method2：Before calling the price, check the corresponding  charging standard of ERC20 from the price contract, calculate the fee based on the charging rules, and then call the price.
 
 ```
-    //  Check the minimum ETH cost of obtaining the price 
-    function checkPriceCostLeast(address tokenAddress) public view returns(uint256) {
-        return _tokenInfo[tokenAddress].priceCostLeast;
-    }
-    
-    //  Check the maximum ETH cost of obtaining the price 
-    function checkPriceCostMost(address tokenAddress) public view returns(uint256) {
-        return _tokenInfo[tokenAddress].priceCostMost;
-    }
-    
-    //  Check the cost of a single price data
-    function checkPriceCostSingle(address tokenAddress) public view returns(uint256) {
-        return _tokenInfo[tokenAddress].priceCostSingle;
+    // Check call price fee
+    function checkPriceCost() public view returns (uint256) {
+        return _priceCost;
     }
 ```
 4. Do not implement methods that can publicly check prices (to prevent proxy prices) within the contract. Any method of calling Nest oracle price data is only for internal use of the contract. If it includes a method of publicly checking the price, the contract will be voted by the community to be added to the price calling blacklist, and the contract will not be able to call the Nest oracle price. 
@@ -51,20 +41,6 @@ The first offer：10ETH， 2000USDT
 The second offer：100ETH，3000USDT
 
 The calculation of effective price (weighted average)：(10ETH + 100ETH) / (2000USDT + 3000USDT)
-
-### Charging instruction
-There are 2 types of price calling
-
-1. Calling the latest price（return the latest price data）。
-2. Calling history price（Backward from the latest price, can choose the number of prices and return price data array).
-
-Charging
-1. Calling the latest price,  payment of 0.001ETH(default).
-2. Calling history price, a single data is 0.0001ETH(default)；payment of 10 prices for number less than 10；payment of 100 prices for number more than 100.
-
-Distribution
-
-20% of the payment is distributed to the last offering miner of the corresponding block number of the effective price, 80% of the payment is distributed to the bonus pool of corresponding Token.
 
 ### Method
 
@@ -116,46 +92,14 @@ The length of returned array is 3 * num，a price data consist of 3 numbers, res
 function updateAndCheckPriceList(address tokenAddress, uint256 num) public payable returns (uint256[] memory)
 ```
 
-
-#### Checking the least fee(ETH) for obtaining prices
-input parameter | description 
----|---
-tokenAddress | the erc20 address for checking 
+#### Checking the fee(ETH) for obtaining a price
 
 output parameter | description 
 ---|---
---- | the least eth fee for obtaining prices 
-
-The charging standard from this method is for ‘Checking price" and "Checking history price".
+--- | the eth fee for obtaining a price 
 
 ```
-function checkPriceCostLeast(address tokenAddress) external view returns(uint256)
-```
-
-#### Checking the largest fee(ETH) for obtaining prices
-input parameter | description 
----|---
-tokenAddress | the erc20 address for checking 
-
-output parameter | description 
----|---
---- | the largest eth fee for obtaining prices 
-
-```
-function checkPriceCostMost(address tokenAddress) external view returns(uint256)
-```
-
-#### Checking the fee(ETH) for obtaining a single price
-input parameter | description 
----|---
-tokenAddress | the erc20 address for checking 
-
-output parameter | description 
----|---
---- | the eth fee for obtaining a single price 
-
-```
-function checkPriceCostSingle(address tokenAddress) external view returns(uint256)
+function checkPriceCost() public view returns (uint256)
 ```
 
 ### Demo
@@ -278,23 +222,9 @@ interface Nest_3_OfferPrice {
     */
     function updateAndCheckPriceList(address tokenAddress, uint256 num) external payable returns (uint256[] memory);
     /**
-    * @dev Check the minimum ETH cost of obtaining the price
-    * @param tokenAddress erc20 address
-    * @return uint256 the minimum ETH cost of obtaining the price
+    * @dev Check the cost of obtaining the price
     */
-    function checkPriceCostLeast(address tokenAddress) external view returns(uint256);
-    /**
-    * @dev Check the maximum ETH cost of obtaining the price
-    * @param tokenAddress erc20 address
-    * @return uint256 the maximum ETH cost of obtaining the price
-    */
-    function checkPriceCostMost(address tokenAddress) external view returns(uint256);
-    /**
-    * @dev Check the cost of a single price data
-    * @param tokenAddress erc20 address
-    * @return uint256 the cost of a single price data
-    */
-    function checkPriceCostSingle(address tokenAddress) external view returns(uint256);
+    function checkPriceCost() public view returns (uint256);
 }
 
 
