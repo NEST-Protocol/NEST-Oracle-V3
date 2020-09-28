@@ -30,17 +30,14 @@ contract Nest_3_OfferPrice{
     struct TokenInfo {                                              //  Token offer information
         mapping(uint256 => PriceInfo) priceInfoList;                //  Block price list, block number => block price
         uint256 latestOffer;                                        //  Latest effective block
-        uint256 priceCostLeast;                                     //  Minimum ETH cost for prices
-        uint256 priceCostMost;                                      //  Maximum ETH cost for prices
-        uint256 priceCostSingle;                                    //  ETH cost for single data
-        uint256 priceCostUser;                                      //  User ratio of cost 
     }
-    uint256 destructionAmount = 10000 ether;                        //  Amount of NEST to destroy to call prices
-    uint256 effectTime = 1 days;                                    //  Waiting time to start calling prices
+    uint256 destructionAmount = 0 ether;                            //  Amount of NEST to destroy to call prices
+    uint256 effectTime = 0 days;                                    //  Waiting time to start calling prices
     mapping(address => TokenInfo) _tokenInfo;                       //  Token offer information
     mapping(address => bool) _blocklist;                            //  Block list
     mapping(address => uint256) _addressEffect;                     //  Effective time of address to call prices 
     mapping(address => bool) _offerMainMapping;                     //  Offering contract mapping
+    uint256 _priceCost = 0.01 ether;                                //  Call price fee
 
     //  Real-time price  token, ETH amount, erc20 amount
     event NowTokenPrice(address a, uint256 b, uint256 c);
@@ -86,12 +83,7 @@ contract Nest_3_OfferPrice{
     * @param tokenAddress Token address
     */
     function addPriceCost(address tokenAddress) public {
-        require(msg.sender == _nTokenAuction);
-        TokenInfo storage tokenInfo = _tokenInfo[tokenAddress];
-        tokenInfo.priceCostLeast = 0.001 ether;
-        tokenInfo.priceCostMost = 0.01 ether;
-        tokenInfo.priceCostSingle = 0.0001 ether;
-        tokenInfo.priceCostUser = 2;
+       
     }
     
     /**
@@ -108,7 +100,6 @@ contract Nest_3_OfferPrice{
         PriceInfo storage priceInfo = tokenInfo.priceInfoList[endBlock];
         priceInfo.ethAmount = priceInfo.ethAmount.add(ethAmount);
         priceInfo.erc20Amount = priceInfo.erc20Amount.add(tokenAmount);
-        priceInfo.offerOwner = offerOwner;
         if (endBlock != tokenInfo.latestOffer) {
             // If different block offer
             priceInfo.frontBlock = tokenInfo.latestOffer;
@@ -139,21 +130,22 @@ contract Nest_3_OfferPrice{
     */
     function updateAndCheckPriceNow(address tokenAddress) public payable returns(uint256 ethAmount, uint256 erc20Amount, uint256 blockNum) {
         require(checkUseNestPrice(address(msg.sender)));
-        TokenInfo storage tokenInfo = _tokenInfo[tokenAddress];
-        uint256 checkBlock = tokenInfo.latestOffer;
-        while(checkBlock > 0 && (checkBlock >= block.number || tokenInfo.priceInfoList[checkBlock].ethAmount == 0)) {
-            checkBlock = tokenInfo.priceInfoList[checkBlock].frontBlock;
+        mapping(uint256 => PriceInfo) storage priceInfoList = _tokenInfo[tokenAddress].priceInfoList;
+        uint256 checkBlock = _tokenInfo[tokenAddress].latestOffer;
+        while(checkBlock > 0 && (checkBlock >= block.number || priceInfoList[checkBlock].ethAmount == 0)) {
+            checkBlock = priceInfoList[checkBlock].frontBlock;
         }
         require(checkBlock != 0);
-        PriceInfo memory priceInfo = tokenInfo.priceInfoList[checkBlock];
+        PriceInfo memory priceInfo = priceInfoList[checkBlock];
         address nToken = _tokenMapping.checkTokenMapping(tokenAddress);
         if (nToken == address(0x0)) {
-            _abonus.switchToEth.value(tokenInfo.priceCostLeast.sub(tokenInfo.priceCostLeast.mul(tokenInfo.priceCostUser).div(10)))(address(_nestToken));
+            _abonus.switchToEth.value(_priceCost)(address(_nestToken));
         } else {
-            _abonus.switchToEth.value(tokenInfo.priceCostLeast.sub(tokenInfo.priceCostLeast.mul(tokenInfo.priceCostUser).div(10)))(address(nToken));
+            _abonus.switchToEth.value(_priceCost)(address(nToken));
         }
-        repayEth(priceInfo.offerOwner, tokenInfo.priceCostLeast.mul(tokenInfo.priceCostUser).div(10));
-        repayEth(address(msg.sender), msg.value.sub(tokenInfo.priceCostLeast));
+        if (msg.value > _priceCost) {
+            repayEth(address(msg.sender), msg.value.sub(_priceCost));
+        }
         emit NowTokenPrice(tokenAddress,priceInfo.ethAmount, priceInfo.erc20Amount);
         return (priceInfo.ethAmount,priceInfo.erc20Amount, checkBlock);
     }
@@ -165,15 +157,15 @@ contract Nest_3_OfferPrice{
     * @return erc20Amount Erc20 amount
     */
     function updateAndCheckPricePrivate(address tokenAddress) public view onlyOfferMain returns(uint256 ethAmount, uint256 erc20Amount) {
-        TokenInfo storage tokenInfo = _tokenInfo[tokenAddress];
-        uint256 checkBlock = tokenInfo.latestOffer;
-        while(checkBlock > 0 && (checkBlock >= block.number || tokenInfo.priceInfoList[checkBlock].ethAmount == 0)) {
-            checkBlock = tokenInfo.priceInfoList[checkBlock].frontBlock;
+        mapping(uint256 => PriceInfo) storage priceInfoList = _tokenInfo[tokenAddress].priceInfoList;
+        uint256 checkBlock = _tokenInfo[tokenAddress].latestOffer;
+        while(checkBlock > 0 && (checkBlock >= block.number || priceInfoList[checkBlock].ethAmount == 0)) {
+            checkBlock = priceInfoList[checkBlock].frontBlock;
         }
         if (checkBlock == 0) {
             return (0,0);
         }
-        PriceInfo memory priceInfo = tokenInfo.priceInfoList[checkBlock];
+        PriceInfo memory priceInfo = priceInfoList[checkBlock];
         return (priceInfo.ethAmount,priceInfo.erc20Amount);
     }
     
@@ -185,44 +177,32 @@ contract Nest_3_OfferPrice{
     */
     function updateAndCheckPriceList(address tokenAddress, uint256 num) public payable returns (uint256[] memory) {
         require(checkUseNestPrice(address(msg.sender)));
-        TokenInfo storage tokenInfo = _tokenInfo[tokenAddress];
-        // Charge
-        uint256 thisPay = tokenInfo.priceCostSingle.mul(num);
-        if (thisPay < tokenInfo.priceCostLeast) {
-            thisPay=tokenInfo.priceCostLeast;
-        } else if (thisPay > tokenInfo.priceCostMost) {
-            thisPay = tokenInfo.priceCostMost;
-        }
-        
+        mapping(uint256 => PriceInfo) storage priceInfoList = _tokenInfo[tokenAddress].priceInfoList;
         // Extract data
         uint256 length = num.mul(3);
         uint256 index = 0;
         uint256[] memory data = new uint256[](length);
-        address latestOfferOwner = address(0x0);
-        uint256 checkBlock = tokenInfo.latestOffer;
+        uint256 checkBlock = _tokenInfo[tokenAddress].latestOffer;
         while(index < length && checkBlock > 0){
-            if (checkBlock < block.number && tokenInfo.priceInfoList[checkBlock].ethAmount != 0) {
+            if (checkBlock < block.number && priceInfoList[checkBlock].ethAmount != 0) {
                 // Add return data
-                data[index++] = tokenInfo.priceInfoList[checkBlock].ethAmount;
-                data[index++] = tokenInfo.priceInfoList[checkBlock].erc20Amount;
+                data[index++] = priceInfoList[checkBlock].ethAmount;
+                data[index++] = priceInfoList[checkBlock].erc20Amount;
                 data[index++] = checkBlock;
-                if (latestOfferOwner == address(0x0)) {
-                    latestOfferOwner = tokenInfo.priceInfoList[checkBlock].offerOwner;
-                }
             }
-            checkBlock = tokenInfo.priceInfoList[checkBlock].frontBlock;
+            checkBlock = priceInfoList[checkBlock].frontBlock;
         }
-        require(latestOfferOwner != address(0x0));
         require(length == data.length);
         // Allocation
         address nToken = _tokenMapping.checkTokenMapping(tokenAddress);
         if (nToken == address(0x0)) {
-            _abonus.switchToEth.value(thisPay.sub(thisPay.mul(tokenInfo.priceCostUser).div(10)))(address(_nestToken));
+            _abonus.switchToEth.value(_priceCost)(address(_nestToken));
         } else {
-            _abonus.switchToEth.value(thisPay.sub(thisPay.mul(tokenInfo.priceCostUser).div(10)))(address(nToken));
+            _abonus.switchToEth.value(_priceCost)(address(nToken));
         }
-        repayEth(latestOfferOwner, thisPay.mul(tokenInfo.priceCostUser).div(10));
-        repayEth(address(msg.sender), msg.value.sub(thisPay));
+        if (msg.value > _priceCost) {
+            repayEth(address(msg.sender), msg.value.sub(_priceCost));
+        }
         return data;
     }
     
@@ -248,36 +228,16 @@ contract Nest_3_OfferPrice{
     // Check real-time price - user account only
     function checkPriceNow(address tokenAddress) public view returns (uint256 ethAmount, uint256 erc20Amount, uint256 blockNum) {
         require(address(msg.sender) == address(tx.origin), "It can't be a contract");
-        TokenInfo storage tokenInfo = _tokenInfo[tokenAddress];
-        uint256 checkBlock = tokenInfo.latestOffer;
-        while(checkBlock > 0 && (checkBlock >= block.number || tokenInfo.priceInfoList[checkBlock].ethAmount == 0)) {
-            checkBlock = tokenInfo.priceInfoList[checkBlock].frontBlock;
+        mapping(uint256 => PriceInfo) storage priceInfoList = _tokenInfo[tokenAddress].priceInfoList;
+        uint256 checkBlock = _tokenInfo[tokenAddress].latestOffer;
+        while(checkBlock > 0 && (checkBlock >= block.number || priceInfoList[checkBlock].ethAmount == 0)) {
+            checkBlock = priceInfoList[checkBlock].frontBlock;
         }
         if (checkBlock == 0) {
             return (0,0,0);
         }
-        PriceInfo storage priceInfo = tokenInfo.priceInfoList[checkBlock];
+        PriceInfo storage priceInfo = priceInfoList[checkBlock];
         return (priceInfo.ethAmount,priceInfo.erc20Amount, checkBlock);
-    }
-    
-    // Check the cost allocation ratio
-    function checkPriceCostProportion(address tokenAddress) public view returns(uint256 user, uint256 abonus) {
-        return (_tokenInfo[tokenAddress].priceCostUser, uint256(10).sub(_tokenInfo[tokenAddress].priceCostUser));
-    }
-    
-    // Check the minimum ETH cost of obtaining the price
-    function checkPriceCostLeast(address tokenAddress) public view returns(uint256) {
-        return _tokenInfo[tokenAddress].priceCostLeast;
-    }
-    
-    // Check the maximum ETH cost of obtaining the price
-    function checkPriceCostMost(address tokenAddress) public view returns(uint256) {
-        return _tokenInfo[tokenAddress].priceCostMost;
-    }
-    
-    // Check the cost of a single price data
-    function checkPriceCostSingle(address tokenAddress) public view returns(uint256) {
-        return _tokenInfo[tokenAddress].priceCostSingle;
     }
     
     // Check whether the price-checking functions can be called
@@ -304,24 +264,9 @@ contract Nest_3_OfferPrice{
         return effectTime;
     }
     
-    // Modify user ratio of cost 
-    function changePriceCostProportion(uint256 user, address tokenAddress) public onlyOwner {
-        _tokenInfo[tokenAddress].priceCostUser = user;
-    }
-    
-    // Modify minimum ETH cost for prices
-    function changePriceCostLeast(uint256 amount, address tokenAddress) public onlyOwner {
-        _tokenInfo[tokenAddress].priceCostLeast = amount;
-    }
-    
-    // Modify maximum ETH cost for prices 
-    function changePriceCostMost(uint256 amount, address tokenAddress) public onlyOwner {
-        _tokenInfo[tokenAddress].priceCostMost = amount;
-    }
-    
-    // Modify ETH cost for single data
-    function checkPriceCostSingle(uint256 amount, address tokenAddress) public onlyOwner {
-        _tokenInfo[tokenAddress].priceCostSingle = amount;
+    // Check call price fee
+    function checkPriceCost() public view returns (uint256) {
+        return _priceCost;
     }
     
     // Modify the blocklist 
@@ -337,6 +282,11 @@ contract Nest_3_OfferPrice{
     // Modify the waiting time to start calling prices
     function changeEffectTime(uint256 num) public onlyOwner {
         effectTime = num;
+    }
+    
+    // Modify call price fee
+    function changePriceCost(uint256 num) public onlyOwner {
+        _priceCost = num;
     }
 
     // Offering contract only
