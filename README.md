@@ -4,7 +4,11 @@
 
 The NEST Oracle 3.0 is a solidity smart contract implementation of NEST Protocol which provide a unique on-chain price oracle through a decentralized mechanism. The original idea was described by the white paper [NEST Protocol: A Distributed Price Oracle Network](https://nestprotocol.org/doc/ennestwhitepaper.pdf)
 
-## Contribution
+## Contributing
+
+Thank you for considering to help out with the source code! We welcome contributions from anyone on the internet, and are grateful for even the smallest of fixes!
+
+If you'd like to contribute to NEST Oracle 3.0, please fork, fix, commit and send a pull request for the developers to review and merge into the main code base!
 
 ## Contract Interface
 
@@ -30,3 +34,7 @@ nToken oracle auction contract | nest.nToken.tokenAuction | 0x385111F23A00AED181
 nToken mapping contract | nest.nToken.tokenMapping | 0xF9Dc75762fC000f3fb1cF88E7fcc32f9969BA003 | 0x511fe13ca247ceF81332eE27f743E051991008Cb
 NEST Token destruction address | nest.v3.destruction | 0x0000000000000000000000000000000000000001 | 0x0000000000000000000000000000000000000001
 
+## Discussion 
+
+For any concerns with the protocol, open an issue.
+For security concerns, please email security@nestprotocol.org.
