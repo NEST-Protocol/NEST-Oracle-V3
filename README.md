@@ -1,4 +1,14 @@
-# NEST oracle 3.0
+# NEST Oracle 3.0
+
+## Intro
+
+The NEST Oracle 3.0 is a solidity smart contract implementation of NEST Protocol which provide a unique on-chain price oracle through a decentralized mechanism. The original idea was described by the white paper [NEST Protocol: A Distributed Price Oracle Network](https://nestprotocol.org/doc/ennestwhitepaper.pdf)
+
+## Contribution
+
+## Contract Interface
+
+## Contract Addresses
 
 Contract | Mapping Parameter | Mainnet Address | Ropsten Address 
 ---|---|---|---
