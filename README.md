@@ -34,6 +34,13 @@ nToken Oracle Auction contract | nest.nToken.tokenAuction | 0x385111F23A00AED181
 nToken Mapping Contract | nest.nToken.tokenMapping | 0xF9Dc75762fC000f3fb1cF88E7fcc32f9969BA003 | 0x511fe13ca247ceF81332eE27f743E051991008Cb
 NEST Token Destruction address | nest.v3.destruction | 0x0000000000000000000000000000000000000001 | 0x0000000000000000000000000000000000000001
 
+### to Nest3.5
+
+Contract | Address
+---|---
+NEST Vote Contract| 0xb3f9b0Cc0B9e7312724AB2a379a6A5ac5b3b7506
+
+
 ## Discussion 
 
 For any concerns with the protocol, open an issue.
